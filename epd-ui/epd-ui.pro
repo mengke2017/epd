@@ -4,7 +4,8 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT       += core gui network
+
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -33,7 +34,9 @@ SOURCES += \
     Module/stationname.cpp \
     e-paper/miniGUI.c \
     e-paper/IT8951_USB.c \
-    e-paper/IT8951_CMD.c
+    e-paper/IT8951_CMD.c \
+    serial/serial.cpp \
+    tcp/client.cpp
 
 HEADERS += \
         mainwindow.h \
@@ -45,7 +48,9 @@ HEADERS += \
     customize.h \
     e-paper/miniGUI.h \
     e-paper/IT8951_USB.h \
-    e-paper/IT8951_CMD.h
+    e-paper/IT8951_CMD.h \
+    serial/serial.h \
+    tcp/client.h
 
 FORMS += \
         mainwindow.ui

@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 #include "e-paper/IT8951_USB.h"
 #include "e-paper/miniGUI.h"
+#include <QThread>
 
 #define MAX_LINE_COUNT_MAIN   10
 #define MAX_LINE_COUNT_CHILD  5
@@ -23,6 +24,11 @@ MainWindow::MainWindow(QWidget *parent) :
     timer = new QTimer();
 //    m_pStackedWidget = new QStackedWidget();
 
+    service = new BackstageManager();
+    QThread *thread = new QThread(this);
+    service->moveToThread(thread);
+    connect(thread,SIGNAL(started()),service,SLOT(start()),Qt::QueuedConnection);
+
     mainpage_line_max = 10;
     childpage_line_max = 6;
     top = new QFrame();
@@ -40,6 +46,7 @@ MainWindow::MainWindow(QWidget *parent) :
     timer->start(1000);
     ui->centralWidget->hide();
     init_device();
+
 }
 
 MainWindow::~MainWindow()

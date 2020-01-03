@@ -9,6 +9,7 @@
 #include "Module/top.h"
 #include "Module/mainline.h"
 #include "Module/childline.h"
+#include "backstagemanager.h"
 
 namespace Ui {
 class MainWindow;
@@ -26,6 +27,8 @@ private:
     Ui::MainWindow *ui;
     QTimer *timer;
     QStackedWidget *m_pStackedWidget;
+
+    BackstageManager *service;
 
     QFrame *top;
     TopWidget *top_widget;

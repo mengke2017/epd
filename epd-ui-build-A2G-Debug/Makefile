@@ -12,10 +12,10 @@ MAKEFILE      = Makefile
 
 CC            = arm-linux-gnueabihf-gcc
 CXX           = arm-linux-gnueabihf-g++
-DEFINES       = -DQT_DEPRECATED_WARNINGS -DQT_QML_DEBUG -DQT_DECLARATIVE_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB
+DEFINES       = -DQT_DEPRECATED_WARNINGS -DQT_QML_DEBUG -DQT_DECLARATIVE_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_CORE_LIB
 CFLAGS        = -pipe -mfpu=neon -marm -mcpu=cortex-a7 -g -Wall -W -D_REENTRANT -fPIC $(DEFINES)
 CXXFLAGS      = -pipe -mfpu=neon -marm -mcpu=cortex-a7 -g -std=gnu++11 -Wall -W -D_REENTRANT -fPIC $(DEFINES)
-INCPATH       = -I../epd-ui -I. -I/usr/local/qt5lib/Qt5.9/include -I/usr/local/qt5lib/Qt5.9/include/QtWidgets -I/usr/local/qt5lib/Qt5.9/include/QtGui -I/usr/local/qt5lib/Qt5.9/include/QtCore -I. -I. -I/usr/local/arm/tslib/include -I/usr/local/qt5lib/Qt5.9/mkspecs/linux-arm-gnueabihf-g++
+INCPATH       = -I../epd-ui -I. -I/usr/local/qt5lib/Qt5.9/include -I/usr/local/qt5lib/Qt5.9/include/QtWidgets -I/usr/local/qt5lib/Qt5.9/include/QtGui -I/usr/local/qt5lib/Qt5.9/include/QtNetwork -I/usr/local/qt5lib/Qt5.9/include/QtCore -I. -I. -I/usr/local/arm/tslib/include -I/usr/local/qt5lib/Qt5.9/mkspecs/linux-arm-gnueabihf-g++
 QMAKE         = /usr/local/qt5lib/Qt5.9/bin/qmake
 DEL_FILE      = rm -f
 CHK_DIR_EXISTS= test -d
@@ -39,7 +39,7 @@ DISTNAME      = epd-ui1.0.0
 DISTDIR = /home/jonker/work/epd-ui/epd-ui-build-A2G-Debug/.tmp/epd-ui1.0.0
 LINK          = arm-linux-gnueabihf-g++
 LFLAGS        = -Wl,-rpath,/usr/local/qt5lib/Qt5.9/lib
-LIBS          = $(SUBLIBS) -L/usr/local/arm/tslib/lib -L/usr/local/qt5lib/Qt5.9/lib -lQt5Widgets -lQt5Gui -lQt5Core -lpthread 
+LIBS          = $(SUBLIBS) -L/usr/local/arm/tslib/lib -L/usr/local/qt5lib/Qt5.9/lib -lQt5Widgets -lQt5Gui -lQt5Network -lQt5Core -lpthread 
 AR            = arm-linux-gnueabihf-ar cqs
 RANLIB        = 
 SED           = sed
@@ -60,14 +60,18 @@ SOURCES       = ../epd-ui/main.cpp \
 		../epd-ui/Module/stationname.cpp \
 		../epd-ui/e-paper/miniGUI.c \
 		../epd-ui/e-paper/IT8951_USB.c \
-		../epd-ui/e-paper/IT8951_CMD.c qrc_image.cpp \
+		../epd-ui/e-paper/IT8951_CMD.c \
+		../epd-ui/serial/serial.cpp \
+		../epd-ui/tcp/client.cpp qrc_image.cpp \
 		qrc_weather_ico.cpp \
 		moc_mainwindow.cpp \
 		moc_backstagemanager.cpp \
 		moc_top.cpp \
 		moc_mainline.cpp \
 		moc_childline.cpp \
-		moc_stationname.cpp
+		moc_stationname.cpp \
+		moc_serial.cpp \
+		moc_client.cpp
 OBJECTS       = main.o \
 		mainwindow.o \
 		backstagemanager.o \
@@ -78,6 +82,8 @@ OBJECTS       = main.o \
 		miniGUI.o \
 		IT8951_USB.o \
 		IT8951_CMD.o \
+		serial.o \
+		client.o \
 		qrc_image.o \
 		qrc_weather_ico.o \
 		moc_mainwindow.o \
@@ -85,7 +91,9 @@ OBJECTS       = main.o \
 		moc_top.o \
 		moc_mainline.o \
 		moc_childline.o \
-		moc_stationname.o
+		moc_stationname.o \
+		moc_serial.o \
+		moc_client.o
 DIST          = /usr/local/qt5lib/Qt5.9/mkspecs/features/spec_pre.prf \
 		/usr/local/qt5lib/Qt5.9/mkspecs/common/unix.conf \
 		/usr/local/qt5lib/Qt5.9/mkspecs/common/linux.conf \
@@ -215,7 +223,9 @@ DIST          = /usr/local/qt5lib/Qt5.9/mkspecs/features/spec_pre.prf \
 		../epd-ui/customize.h \
 		../epd-ui/e-paper/miniGUI.h \
 		../epd-ui/e-paper/IT8951_USB.h \
-		../epd-ui/e-paper/IT8951_CMD.h ../epd-ui/main.cpp \
+		../epd-ui/e-paper/IT8951_CMD.h \
+		../epd-ui/serial/serial.h \
+		../epd-ui/tcp/client.h ../epd-ui/main.cpp \
 		../epd-ui/mainwindow.cpp \
 		../epd-ui/backstagemanager.cpp \
 		../epd-ui/Module/childline.cpp \
@@ -224,7 +234,9 @@ DIST          = /usr/local/qt5lib/Qt5.9/mkspecs/features/spec_pre.prf \
 		../epd-ui/Module/stationname.cpp \
 		../epd-ui/e-paper/miniGUI.c \
 		../epd-ui/e-paper/IT8951_USB.c \
-		../epd-ui/e-paper/IT8951_CMD.c
+		../epd-ui/e-paper/IT8951_CMD.c \
+		../epd-ui/serial/serial.cpp \
+		../epd-ui/tcp/client.cpp
 QMAKE_TARGET  = epd-ui
 DESTDIR       = 
 TARGET        = epd-ui
@@ -361,6 +373,7 @@ Makefile: ../epd-ui/epd-ui.pro /usr/local/qt5lib/Qt5.9/mkspecs/linux-arm-gnueabi
 		../epd-ui/weather_ico.qrc \
 		/usr/local/qt5lib/Qt5.9/lib/libQt5Widgets.prl \
 		/usr/local/qt5lib/Qt5.9/lib/libQt5Gui.prl \
+		/usr/local/qt5lib/Qt5.9/lib/libQt5Network.prl \
 		/usr/local/qt5lib/Qt5.9/lib/libQt5Core.prl
 	$(QMAKE) -o Makefile ../epd-ui/epd-ui.pro -spec linux-arm-gnueabihf-g++ CONFIG+=debug CONFIG+=declarative_debug CONFIG+=qml_debug
 /usr/local/qt5lib/Qt5.9/mkspecs/features/spec_pre.prf:
@@ -488,6 +501,7 @@ Makefile: ../epd-ui/epd-ui.pro /usr/local/qt5lib/Qt5.9/mkspecs/linux-arm-gnueabi
 ../epd-ui/weather_ico.qrc:
 /usr/local/qt5lib/Qt5.9/lib/libQt5Widgets.prl:
 /usr/local/qt5lib/Qt5.9/lib/libQt5Gui.prl:
+/usr/local/qt5lib/Qt5.9/lib/libQt5Network.prl:
 /usr/local/qt5lib/Qt5.9/lib/libQt5Core.prl:
 qmake: FORCE
 	@$(QMAKE) -o Makefile ../epd-ui/epd-ui.pro -spec linux-arm-gnueabihf-g++ CONFIG+=debug CONFIG+=declarative_debug CONFIG+=qml_debug
@@ -505,8 +519,8 @@ distdir: FORCE
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents ../epd-ui/image.qrc ../epd-ui/weather_ico.qrc $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/local/qt5lib/Qt5.9/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents ../epd-ui/mainwindow.h ../epd-ui/backstagemanager.h ../epd-ui/Module/top.h ../epd-ui/Module/mainline.h ../epd-ui/Module/childline.h ../epd-ui/Module/stationname.h ../epd-ui/customize.h ../epd-ui/e-paper/miniGUI.h ../epd-ui/e-paper/IT8951_USB.h ../epd-ui/e-paper/IT8951_CMD.h $(DISTDIR)/
-	$(COPY_FILE) --parents ../epd-ui/main.cpp ../epd-ui/mainwindow.cpp ../epd-ui/backstagemanager.cpp ../epd-ui/Module/childline.cpp ../epd-ui/Module/mainline.cpp ../epd-ui/Module/top.cpp ../epd-ui/Module/stationname.cpp ../epd-ui/e-paper/miniGUI.c ../epd-ui/e-paper/IT8951_USB.c ../epd-ui/e-paper/IT8951_CMD.c $(DISTDIR)/
+	$(COPY_FILE) --parents ../epd-ui/mainwindow.h ../epd-ui/backstagemanager.h ../epd-ui/Module/top.h ../epd-ui/Module/mainline.h ../epd-ui/Module/childline.h ../epd-ui/Module/stationname.h ../epd-ui/customize.h ../epd-ui/e-paper/miniGUI.h ../epd-ui/e-paper/IT8951_USB.h ../epd-ui/e-paper/IT8951_CMD.h ../epd-ui/serial/serial.h ../epd-ui/tcp/client.h $(DISTDIR)/
+	$(COPY_FILE) --parents ../epd-ui/main.cpp ../epd-ui/mainwindow.cpp ../epd-ui/backstagemanager.cpp ../epd-ui/Module/childline.cpp ../epd-ui/Module/mainline.cpp ../epd-ui/Module/top.cpp ../epd-ui/Module/stationname.cpp ../epd-ui/e-paper/miniGUI.c ../epd-ui/e-paper/IT8951_USB.c ../epd-ui/e-paper/IT8951_CMD.c ../epd-ui/serial/serial.cpp ../epd-ui/tcp/client.cpp $(DISTDIR)/
 	$(COPY_FILE) --parents ../epd-ui/mainwindow.ui $(DISTDIR)/
 
 
@@ -577,9 +591,9 @@ compiler_moc_predefs_clean:
 moc_predefs.h: /usr/local/qt5lib/Qt5.9/mkspecs/features/data/dummy.cpp
 	arm-linux-gnueabihf-g++ -pipe -mfpu=neon -marm -mcpu=cortex-a7 -g -std=gnu++11 -Wall -W -dM -E -o moc_predefs.h /usr/local/qt5lib/Qt5.9/mkspecs/features/data/dummy.cpp
 
-compiler_moc_header_make_all: moc_mainwindow.cpp moc_backstagemanager.cpp moc_top.cpp moc_mainline.cpp moc_childline.cpp moc_stationname.cpp
+compiler_moc_header_make_all: moc_mainwindow.cpp moc_backstagemanager.cpp moc_top.cpp moc_mainline.cpp moc_childline.cpp moc_stationname.cpp moc_serial.cpp moc_client.cpp
 compiler_moc_header_clean:
-	-$(DEL_FILE) moc_mainwindow.cpp moc_backstagemanager.cpp moc_top.cpp moc_mainline.cpp moc_childline.cpp moc_stationname.cpp
+	-$(DEL_FILE) moc_mainwindow.cpp moc_backstagemanager.cpp moc_top.cpp moc_mainline.cpp moc_childline.cpp moc_stationname.cpp moc_serial.cpp moc_client.cpp
 moc_mainwindow.cpp: /usr/local/qt5lib/Qt5.9/include/QtWidgets/QMainWindow \
 		/usr/local/qt5lib/Qt5.9/include/QtWidgets/qmainwindow.h \
 		/usr/local/qt5lib/Qt5.9/include/QtWidgets/qtwidgetsglobal.h \
@@ -708,12 +722,29 @@ moc_mainwindow.cpp: /usr/local/qt5lib/Qt5.9/include/QtWidgets/QMainWindow \
 		../epd-ui/Module/mainline.h \
 		../epd-ui/Module/childline.h \
 		../epd-ui/Module/stationname.h \
+		../epd-ui/backstagemanager.h \
+		../epd-ui/tcp/client.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QObject \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/QTcpSocket \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qtcpsocket.h \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qtnetworkglobal.h \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qtnetwork-config.h \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qabstractsocket.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QSettings \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsettings.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QVariant \
+		../epd-ui/serial/serial.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QByteArray \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QMutex \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QSocketNotifier \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsocketnotifier.h \
 		../epd-ui/mainwindow.h \
 		moc_predefs.h \
 		/usr/local/qt5lib/Qt5.9/bin/moc
-	/usr/local/qt5lib/Qt5.9/bin/moc $(DEFINES) --include ./moc_predefs.h -I/usr/local/qt5lib/Qt5.9/mkspecs/linux-arm-gnueabihf-g++ -I/home/jonker/work/epd-ui/epd-ui -I/usr/local/qt5lib/Qt5.9/include -I/usr/local/qt5lib/Qt5.9/include/QtWidgets -I/usr/local/qt5lib/Qt5.9/include/QtGui -I/usr/local/qt5lib/Qt5.9/include/QtCore -I. -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1 -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1/arm-linux-gnueabihf -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1/backward -I/home/jonker/work/linux/gcc-4.9/lib/gcc/arm-linux-gnueabihf/4.9.1/include -I/home/jonker/work/linux/gcc-4.9/lib/gcc/arm-linux-gnueabihf/4.9.1/include-fixed -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/libc/usr/include ../epd-ui/mainwindow.h -o moc_mainwindow.cpp
+	/usr/local/qt5lib/Qt5.9/bin/moc $(DEFINES) --include ./moc_predefs.h -I/usr/local/qt5lib/Qt5.9/mkspecs/linux-arm-gnueabihf-g++ -I/home/jonker/work/epd-ui/epd-ui -I/usr/local/qt5lib/Qt5.9/include -I/usr/local/qt5lib/Qt5.9/include/QtWidgets -I/usr/local/qt5lib/Qt5.9/include/QtGui -I/usr/local/qt5lib/Qt5.9/include/QtNetwork -I/usr/local/qt5lib/Qt5.9/include/QtCore -I. -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1 -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1/arm-linux-gnueabihf -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1/backward -I/home/jonker/work/linux/gcc-4.9/lib/gcc/arm-linux-gnueabihf/4.9.1/include -I/home/jonker/work/linux/gcc-4.9/lib/gcc/arm-linux-gnueabihf/4.9.1/include-fixed -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/libc/usr/include ../epd-ui/mainwindow.h -o moc_mainwindow.cpp
 
-moc_backstagemanager.cpp: /usr/local/qt5lib/Qt5.9/include/QtCore/QObject \
+moc_backstagemanager.cpp: ../epd-ui/tcp/client.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QObject \
 		/usr/local/qt5lib/Qt5.9/include/QtCore/qobject.h \
 		/usr/local/qt5lib/Qt5.9/include/QtCore/qobjectdefs.h \
 		/usr/local/qt5lib/Qt5.9/include/QtCore/qnamespace.h \
@@ -760,10 +791,77 @@ moc_backstagemanager.cpp: /usr/local/qt5lib/Qt5.9/include/QtCore/QObject \
 		/usr/local/qt5lib/Qt5.9/include/QtCore/qvarlengtharray.h \
 		/usr/local/qt5lib/Qt5.9/include/QtCore/qcontainerfwd.h \
 		/usr/local/qt5lib/Qt5.9/include/QtCore/qobject_impl.h \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/QTcpSocket \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qtcpsocket.h \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qtnetworkglobal.h \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qtnetwork-config.h \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qabstractsocket.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qiodevice.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qdebug.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qhash.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qmap.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qtextstream.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qlocale.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qvariant.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qshareddata.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qvector.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qpoint.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qset.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qcontiguouscache.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsharedpointer.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsharedpointer_impl.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QSettings \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsettings.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QVariant \
+		../epd-ui/serial/serial.h \
+		/usr/local/qt5lib/Qt5.9/include/QtWidgets/QWidget \
+		/usr/local/qt5lib/Qt5.9/include/QtWidgets/qwidget.h \
+		/usr/local/qt5lib/Qt5.9/include/QtWidgets/qtwidgetsglobal.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qtguiglobal.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qtgui-config.h \
+		/usr/local/qt5lib/Qt5.9/include/QtWidgets/qtwidgets-config.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qwindowdefs.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qwindowdefs_win.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qmargins.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qpaintdevice.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qrect.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsize.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qpalette.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qcolor.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qrgb.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qrgba64.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qbrush.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qmatrix.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qpolygon.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qregion.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qdatastream.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qline.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qtransform.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qpainterpath.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qimage.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qpixelformat.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qpixmap.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qfont.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qfontmetrics.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qfontinfo.h \
+		/usr/local/qt5lib/Qt5.9/include/QtWidgets/qsizepolicy.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qcursor.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qkeysequence.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qevent.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qurl.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qurlquery.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qfile.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qfiledevice.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qvector2d.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qtouchdevice.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QByteArray \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QMutex \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QSocketNotifier \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsocketnotifier.h \
 		../epd-ui/backstagemanager.h \
 		moc_predefs.h \
 		/usr/local/qt5lib/Qt5.9/bin/moc
-	/usr/local/qt5lib/Qt5.9/bin/moc $(DEFINES) --include ./moc_predefs.h -I/usr/local/qt5lib/Qt5.9/mkspecs/linux-arm-gnueabihf-g++ -I/home/jonker/work/epd-ui/epd-ui -I/usr/local/qt5lib/Qt5.9/include -I/usr/local/qt5lib/Qt5.9/include/QtWidgets -I/usr/local/qt5lib/Qt5.9/include/QtGui -I/usr/local/qt5lib/Qt5.9/include/QtCore -I. -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1 -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1/arm-linux-gnueabihf -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1/backward -I/home/jonker/work/linux/gcc-4.9/lib/gcc/arm-linux-gnueabihf/4.9.1/include -I/home/jonker/work/linux/gcc-4.9/lib/gcc/arm-linux-gnueabihf/4.9.1/include-fixed -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/libc/usr/include ../epd-ui/backstagemanager.h -o moc_backstagemanager.cpp
+	/usr/local/qt5lib/Qt5.9/bin/moc $(DEFINES) --include ./moc_predefs.h -I/usr/local/qt5lib/Qt5.9/mkspecs/linux-arm-gnueabihf-g++ -I/home/jonker/work/epd-ui/epd-ui -I/usr/local/qt5lib/Qt5.9/include -I/usr/local/qt5lib/Qt5.9/include/QtWidgets -I/usr/local/qt5lib/Qt5.9/include/QtGui -I/usr/local/qt5lib/Qt5.9/include/QtNetwork -I/usr/local/qt5lib/Qt5.9/include/QtCore -I. -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1 -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1/arm-linux-gnueabihf -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1/backward -I/home/jonker/work/linux/gcc-4.9/lib/gcc/arm-linux-gnueabihf/4.9.1/include -I/home/jonker/work/linux/gcc-4.9/lib/gcc/arm-linux-gnueabihf/4.9.1/include-fixed -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/libc/usr/include ../epd-ui/backstagemanager.h -o moc_backstagemanager.cpp
 
 moc_top.cpp: /usr/local/qt5lib/Qt5.9/include/QtWidgets/QWidget \
 		/usr/local/qt5lib/Qt5.9/include/QtWidgets/qwidget.h \
@@ -882,7 +980,7 @@ moc_top.cpp: /usr/local/qt5lib/Qt5.9/include/QtWidgets/QWidget \
 		../epd-ui/Module/top.h \
 		moc_predefs.h \
 		/usr/local/qt5lib/Qt5.9/bin/moc
-	/usr/local/qt5lib/Qt5.9/bin/moc $(DEFINES) --include ./moc_predefs.h -I/usr/local/qt5lib/Qt5.9/mkspecs/linux-arm-gnueabihf-g++ -I/home/jonker/work/epd-ui/epd-ui -I/usr/local/qt5lib/Qt5.9/include -I/usr/local/qt5lib/Qt5.9/include/QtWidgets -I/usr/local/qt5lib/Qt5.9/include/QtGui -I/usr/local/qt5lib/Qt5.9/include/QtCore -I. -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1 -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1/arm-linux-gnueabihf -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1/backward -I/home/jonker/work/linux/gcc-4.9/lib/gcc/arm-linux-gnueabihf/4.9.1/include -I/home/jonker/work/linux/gcc-4.9/lib/gcc/arm-linux-gnueabihf/4.9.1/include-fixed -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/libc/usr/include ../epd-ui/Module/top.h -o moc_top.cpp
+	/usr/local/qt5lib/Qt5.9/bin/moc $(DEFINES) --include ./moc_predefs.h -I/usr/local/qt5lib/Qt5.9/mkspecs/linux-arm-gnueabihf-g++ -I/home/jonker/work/epd-ui/epd-ui -I/usr/local/qt5lib/Qt5.9/include -I/usr/local/qt5lib/Qt5.9/include/QtWidgets -I/usr/local/qt5lib/Qt5.9/include/QtGui -I/usr/local/qt5lib/Qt5.9/include/QtNetwork -I/usr/local/qt5lib/Qt5.9/include/QtCore -I. -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1 -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1/arm-linux-gnueabihf -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1/backward -I/home/jonker/work/linux/gcc-4.9/lib/gcc/arm-linux-gnueabihf/4.9.1/include -I/home/jonker/work/linux/gcc-4.9/lib/gcc/arm-linux-gnueabihf/4.9.1/include-fixed -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/libc/usr/include ../epd-ui/Module/top.h -o moc_top.cpp
 
 moc_mainline.cpp: /usr/local/qt5lib/Qt5.9/include/QtWidgets/QWidget \
 		/usr/local/qt5lib/Qt5.9/include/QtWidgets/qwidget.h \
@@ -1000,7 +1098,7 @@ moc_mainline.cpp: /usr/local/qt5lib/Qt5.9/include/QtWidgets/QWidget \
 		../epd-ui/Module/mainline.h \
 		moc_predefs.h \
 		/usr/local/qt5lib/Qt5.9/bin/moc
-	/usr/local/qt5lib/Qt5.9/bin/moc $(DEFINES) --include ./moc_predefs.h -I/usr/local/qt5lib/Qt5.9/mkspecs/linux-arm-gnueabihf-g++ -I/home/jonker/work/epd-ui/epd-ui -I/usr/local/qt5lib/Qt5.9/include -I/usr/local/qt5lib/Qt5.9/include/QtWidgets -I/usr/local/qt5lib/Qt5.9/include/QtGui -I/usr/local/qt5lib/Qt5.9/include/QtCore -I. -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1 -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1/arm-linux-gnueabihf -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1/backward -I/home/jonker/work/linux/gcc-4.9/lib/gcc/arm-linux-gnueabihf/4.9.1/include -I/home/jonker/work/linux/gcc-4.9/lib/gcc/arm-linux-gnueabihf/4.9.1/include-fixed -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/libc/usr/include ../epd-ui/Module/mainline.h -o moc_mainline.cpp
+	/usr/local/qt5lib/Qt5.9/bin/moc $(DEFINES) --include ./moc_predefs.h -I/usr/local/qt5lib/Qt5.9/mkspecs/linux-arm-gnueabihf-g++ -I/home/jonker/work/epd-ui/epd-ui -I/usr/local/qt5lib/Qt5.9/include -I/usr/local/qt5lib/Qt5.9/include/QtWidgets -I/usr/local/qt5lib/Qt5.9/include/QtGui -I/usr/local/qt5lib/Qt5.9/include/QtNetwork -I/usr/local/qt5lib/Qt5.9/include/QtCore -I. -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1 -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1/arm-linux-gnueabihf -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1/backward -I/home/jonker/work/linux/gcc-4.9/lib/gcc/arm-linux-gnueabihf/4.9.1/include -I/home/jonker/work/linux/gcc-4.9/lib/gcc/arm-linux-gnueabihf/4.9.1/include-fixed -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/libc/usr/include ../epd-ui/Module/mainline.h -o moc_mainline.cpp
 
 moc_childline.cpp: /usr/local/qt5lib/Qt5.9/include/QtWidgets/QWidget \
 		/usr/local/qt5lib/Qt5.9/include/QtWidgets/qwidget.h \
@@ -1119,7 +1217,7 @@ moc_childline.cpp: /usr/local/qt5lib/Qt5.9/include/QtWidgets/QWidget \
 		../epd-ui/Module/childline.h \
 		moc_predefs.h \
 		/usr/local/qt5lib/Qt5.9/bin/moc
-	/usr/local/qt5lib/Qt5.9/bin/moc $(DEFINES) --include ./moc_predefs.h -I/usr/local/qt5lib/Qt5.9/mkspecs/linux-arm-gnueabihf-g++ -I/home/jonker/work/epd-ui/epd-ui -I/usr/local/qt5lib/Qt5.9/include -I/usr/local/qt5lib/Qt5.9/include/QtWidgets -I/usr/local/qt5lib/Qt5.9/include/QtGui -I/usr/local/qt5lib/Qt5.9/include/QtCore -I. -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1 -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1/arm-linux-gnueabihf -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1/backward -I/home/jonker/work/linux/gcc-4.9/lib/gcc/arm-linux-gnueabihf/4.9.1/include -I/home/jonker/work/linux/gcc-4.9/lib/gcc/arm-linux-gnueabihf/4.9.1/include-fixed -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/libc/usr/include ../epd-ui/Module/childline.h -o moc_childline.cpp
+	/usr/local/qt5lib/Qt5.9/bin/moc $(DEFINES) --include ./moc_predefs.h -I/usr/local/qt5lib/Qt5.9/mkspecs/linux-arm-gnueabihf-g++ -I/home/jonker/work/epd-ui/epd-ui -I/usr/local/qt5lib/Qt5.9/include -I/usr/local/qt5lib/Qt5.9/include/QtWidgets -I/usr/local/qt5lib/Qt5.9/include/QtGui -I/usr/local/qt5lib/Qt5.9/include/QtNetwork -I/usr/local/qt5lib/Qt5.9/include/QtCore -I. -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1 -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1/arm-linux-gnueabihf -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1/backward -I/home/jonker/work/linux/gcc-4.9/lib/gcc/arm-linux-gnueabihf/4.9.1/include -I/home/jonker/work/linux/gcc-4.9/lib/gcc/arm-linux-gnueabihf/4.9.1/include-fixed -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/libc/usr/include ../epd-ui/Module/childline.h -o moc_childline.cpp
 
 moc_stationname.cpp: /usr/local/qt5lib/Qt5.9/include/QtWidgets/QFrame \
 		/usr/local/qt5lib/Qt5.9/include/QtWidgets/qframe.h \
@@ -1228,7 +1326,191 @@ moc_stationname.cpp: /usr/local/qt5lib/Qt5.9/include/QtWidgets/QFrame \
 		../epd-ui/Module/stationname.h \
 		moc_predefs.h \
 		/usr/local/qt5lib/Qt5.9/bin/moc
-	/usr/local/qt5lib/Qt5.9/bin/moc $(DEFINES) --include ./moc_predefs.h -I/usr/local/qt5lib/Qt5.9/mkspecs/linux-arm-gnueabihf-g++ -I/home/jonker/work/epd-ui/epd-ui -I/usr/local/qt5lib/Qt5.9/include -I/usr/local/qt5lib/Qt5.9/include/QtWidgets -I/usr/local/qt5lib/Qt5.9/include/QtGui -I/usr/local/qt5lib/Qt5.9/include/QtCore -I. -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1 -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1/arm-linux-gnueabihf -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1/backward -I/home/jonker/work/linux/gcc-4.9/lib/gcc/arm-linux-gnueabihf/4.9.1/include -I/home/jonker/work/linux/gcc-4.9/lib/gcc/arm-linux-gnueabihf/4.9.1/include-fixed -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/libc/usr/include ../epd-ui/Module/stationname.h -o moc_stationname.cpp
+	/usr/local/qt5lib/Qt5.9/bin/moc $(DEFINES) --include ./moc_predefs.h -I/usr/local/qt5lib/Qt5.9/mkspecs/linux-arm-gnueabihf-g++ -I/home/jonker/work/epd-ui/epd-ui -I/usr/local/qt5lib/Qt5.9/include -I/usr/local/qt5lib/Qt5.9/include/QtWidgets -I/usr/local/qt5lib/Qt5.9/include/QtGui -I/usr/local/qt5lib/Qt5.9/include/QtNetwork -I/usr/local/qt5lib/Qt5.9/include/QtCore -I. -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1 -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1/arm-linux-gnueabihf -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1/backward -I/home/jonker/work/linux/gcc-4.9/lib/gcc/arm-linux-gnueabihf/4.9.1/include -I/home/jonker/work/linux/gcc-4.9/lib/gcc/arm-linux-gnueabihf/4.9.1/include-fixed -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/libc/usr/include ../epd-ui/Module/stationname.h -o moc_stationname.cpp
+
+moc_serial.cpp: /usr/local/qt5lib/Qt5.9/include/QtCore/QObject \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qobject.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qobjectdefs.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qnamespace.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qglobal.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qconfig-bootstrapped.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qconfig.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qtcore-config.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsystemdetection.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qprocessordetection.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qcompilerdetection.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qtypeinfo.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsysinfo.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qlogging.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qflags.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qatomic.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qbasicatomic.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qatomic_bootstrap.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qgenericatomic.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qatomic_cxx11.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qatomic_msvc.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qglobalstatic.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qmutex.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qnumeric.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qversiontagging.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qobjectdefs_impl.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qstring.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qchar.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qbytearray.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qrefcount.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qarraydata.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qstringbuilder.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qlist.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qalgorithms.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qiterator.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qhashfunctions.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qpair.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qbytearraylist.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qstringlist.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qregexp.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qstringmatcher.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qcoreevent.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qscopedpointer.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qmetatype.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qvarlengtharray.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qcontainerfwd.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qobject_impl.h \
+		/usr/local/qt5lib/Qt5.9/include/QtWidgets/QWidget \
+		/usr/local/qt5lib/Qt5.9/include/QtWidgets/qwidget.h \
+		/usr/local/qt5lib/Qt5.9/include/QtWidgets/qtwidgetsglobal.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qtguiglobal.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qtgui-config.h \
+		/usr/local/qt5lib/Qt5.9/include/QtWidgets/qtwidgets-config.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qwindowdefs.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qwindowdefs_win.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qmargins.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qpaintdevice.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qrect.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsize.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qpoint.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qpalette.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qcolor.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qrgb.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qrgba64.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qbrush.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qvector.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qmatrix.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qpolygon.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qregion.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qdatastream.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qiodevice.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qline.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qtransform.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qpainterpath.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qimage.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qpixelformat.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qpixmap.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsharedpointer.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qshareddata.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qhash.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsharedpointer_impl.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qfont.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qfontmetrics.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qfontinfo.h \
+		/usr/local/qt5lib/Qt5.9/include/QtWidgets/qsizepolicy.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qcursor.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qkeysequence.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qevent.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qvariant.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qmap.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qdebug.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qtextstream.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qlocale.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qset.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qcontiguouscache.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qurl.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qurlquery.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qfile.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qfiledevice.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qvector2d.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qtouchdevice.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QByteArray \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QMutex \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QSocketNotifier \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsocketnotifier.h \
+		../epd-ui/serial/serial.h \
+		moc_predefs.h \
+		/usr/local/qt5lib/Qt5.9/bin/moc
+	/usr/local/qt5lib/Qt5.9/bin/moc $(DEFINES) --include ./moc_predefs.h -I/usr/local/qt5lib/Qt5.9/mkspecs/linux-arm-gnueabihf-g++ -I/home/jonker/work/epd-ui/epd-ui -I/usr/local/qt5lib/Qt5.9/include -I/usr/local/qt5lib/Qt5.9/include/QtWidgets -I/usr/local/qt5lib/Qt5.9/include/QtGui -I/usr/local/qt5lib/Qt5.9/include/QtNetwork -I/usr/local/qt5lib/Qt5.9/include/QtCore -I. -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1 -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1/arm-linux-gnueabihf -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1/backward -I/home/jonker/work/linux/gcc-4.9/lib/gcc/arm-linux-gnueabihf/4.9.1/include -I/home/jonker/work/linux/gcc-4.9/lib/gcc/arm-linux-gnueabihf/4.9.1/include-fixed -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/libc/usr/include ../epd-ui/serial/serial.h -o moc_serial.cpp
+
+moc_client.cpp: /usr/local/qt5lib/Qt5.9/include/QtCore/QObject \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qobject.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qobjectdefs.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qnamespace.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qglobal.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qconfig-bootstrapped.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qconfig.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qtcore-config.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsystemdetection.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qprocessordetection.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qcompilerdetection.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qtypeinfo.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsysinfo.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qlogging.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qflags.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qatomic.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qbasicatomic.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qatomic_bootstrap.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qgenericatomic.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qatomic_cxx11.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qatomic_msvc.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qglobalstatic.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qmutex.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qnumeric.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qversiontagging.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qobjectdefs_impl.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qstring.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qchar.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qbytearray.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qrefcount.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qarraydata.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qstringbuilder.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qlist.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qalgorithms.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qiterator.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qhashfunctions.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qpair.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qbytearraylist.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qstringlist.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qregexp.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qstringmatcher.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qcoreevent.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qscopedpointer.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qmetatype.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qvarlengtharray.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qcontainerfwd.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qobject_impl.h \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/QTcpSocket \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qtcpsocket.h \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qtnetworkglobal.h \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qtnetwork-config.h \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qabstractsocket.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qiodevice.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qdebug.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qhash.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qmap.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qtextstream.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qlocale.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qvariant.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qshareddata.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qvector.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qpoint.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qset.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qcontiguouscache.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsharedpointer.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsharedpointer_impl.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QSettings \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsettings.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QVariant \
+		../epd-ui/tcp/client.h \
+		moc_predefs.h \
+		/usr/local/qt5lib/Qt5.9/bin/moc
+	/usr/local/qt5lib/Qt5.9/bin/moc $(DEFINES) --include ./moc_predefs.h -I/usr/local/qt5lib/Qt5.9/mkspecs/linux-arm-gnueabihf-g++ -I/home/jonker/work/epd-ui/epd-ui -I/usr/local/qt5lib/Qt5.9/include -I/usr/local/qt5lib/Qt5.9/include/QtWidgets -I/usr/local/qt5lib/Qt5.9/include/QtGui -I/usr/local/qt5lib/Qt5.9/include/QtNetwork -I/usr/local/qt5lib/Qt5.9/include/QtCore -I. -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1 -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1/arm-linux-gnueabihf -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include/c++/4.9.1/backward -I/home/jonker/work/linux/gcc-4.9/lib/gcc/arm-linux-gnueabihf/4.9.1/include -I/home/jonker/work/linux/gcc-4.9/lib/gcc/arm-linux-gnueabihf/4.9.1/include-fixed -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/include -I/home/jonker/work/linux/gcc-4.9/arm-linux-gnueabihf/libc/usr/include ../epd-ui/tcp/client.h -o moc_client.cpp
 
 compiler_moc_source_make_all:
 compiler_moc_source_clean:
@@ -1378,6 +1660,22 @@ main.o: ../epd-ui/main.cpp ../epd-ui/mainwindow.h \
 		../epd-ui/Module/mainline.h \
 		../epd-ui/Module/childline.h \
 		../epd-ui/Module/stationname.h \
+		../epd-ui/backstagemanager.h \
+		../epd-ui/tcp/client.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QObject \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/QTcpSocket \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qtcpsocket.h \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qtnetworkglobal.h \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qtnetwork-config.h \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qabstractsocket.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QSettings \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsettings.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QVariant \
+		../epd-ui/serial/serial.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QByteArray \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QMutex \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QSocketNotifier \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsocketnotifier.h \
 		/usr/local/qt5lib/Qt5.9/include/QtWidgets/QApplication \
 		/usr/local/qt5lib/Qt5.9/include/QtWidgets/qapplication.h \
 		/usr/local/qt5lib/Qt5.9/include/QtCore/qcoreapplication.h \
@@ -1516,8 +1814,23 @@ mainwindow.o: ../epd-ui/mainwindow.cpp ../epd-ui/mainwindow.h \
 		../epd-ui/Module/mainline.h \
 		../epd-ui/Module/childline.h \
 		../epd-ui/Module/stationname.h \
-		ui_mainwindow.h \
+		../epd-ui/backstagemanager.h \
+		../epd-ui/tcp/client.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QObject \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/QTcpSocket \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qtcpsocket.h \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qtnetworkglobal.h \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qtnetwork-config.h \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qabstractsocket.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QSettings \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsettings.h \
 		/usr/local/qt5lib/Qt5.9/include/QtCore/QVariant \
+		../epd-ui/serial/serial.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QByteArray \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QMutex \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QSocketNotifier \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsocketnotifier.h \
+		ui_mainwindow.h \
 		/usr/local/qt5lib/Qt5.9/include/QtWidgets/QAction \
 		/usr/local/qt5lib/Qt5.9/include/QtWidgets/qaction.h \
 		/usr/local/qt5lib/Qt5.9/include/QtWidgets/qactiongroup.h \
@@ -1547,10 +1860,13 @@ mainwindow.o: ../epd-ui/mainwindow.cpp ../epd-ui/mainwindow.h \
 		/usr/local/qt5lib/Qt5.9/include/QtWidgets/qrubberband.h \
 		../epd-ui/e-paper/IT8951_USB.h \
 		../epd-ui/e-paper/IT8951_CMD.h \
-		../epd-ui/e-paper/miniGUI.h
+		../epd-ui/e-paper/miniGUI.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QThread \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qthread.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o mainwindow.o ../epd-ui/mainwindow.cpp
 
 backstagemanager.o: ../epd-ui/backstagemanager.cpp ../epd-ui/backstagemanager.h \
+		../epd-ui/tcp/client.h \
 		/usr/local/qt5lib/Qt5.9/include/QtCore/QObject \
 		/usr/local/qt5lib/Qt5.9/include/QtCore/qobject.h \
 		/usr/local/qt5lib/Qt5.9/include/QtCore/qobjectdefs.h \
@@ -1597,7 +1913,75 @@ backstagemanager.o: ../epd-ui/backstagemanager.cpp ../epd-ui/backstagemanager.h 
 		/usr/local/qt5lib/Qt5.9/include/QtCore/qmetatype.h \
 		/usr/local/qt5lib/Qt5.9/include/QtCore/qvarlengtharray.h \
 		/usr/local/qt5lib/Qt5.9/include/QtCore/qcontainerfwd.h \
-		/usr/local/qt5lib/Qt5.9/include/QtCore/qobject_impl.h
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qobject_impl.h \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/QTcpSocket \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qtcpsocket.h \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qtnetworkglobal.h \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qtnetwork-config.h \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qabstractsocket.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qiodevice.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qdebug.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qhash.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qmap.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qtextstream.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qlocale.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qvariant.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qshareddata.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qvector.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qpoint.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qset.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qcontiguouscache.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsharedpointer.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsharedpointer_impl.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QSettings \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsettings.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QVariant \
+		../epd-ui/serial/serial.h \
+		/usr/local/qt5lib/Qt5.9/include/QtWidgets/QWidget \
+		/usr/local/qt5lib/Qt5.9/include/QtWidgets/qwidget.h \
+		/usr/local/qt5lib/Qt5.9/include/QtWidgets/qtwidgetsglobal.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qtguiglobal.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qtgui-config.h \
+		/usr/local/qt5lib/Qt5.9/include/QtWidgets/qtwidgets-config.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qwindowdefs.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qwindowdefs_win.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qmargins.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qpaintdevice.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qrect.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsize.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qpalette.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qcolor.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qrgb.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qrgba64.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qbrush.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qmatrix.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qpolygon.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qregion.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qdatastream.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qline.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qtransform.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qpainterpath.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qimage.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qpixelformat.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qpixmap.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qfont.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qfontmetrics.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qfontinfo.h \
+		/usr/local/qt5lib/Qt5.9/include/QtWidgets/qsizepolicy.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qcursor.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qkeysequence.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qevent.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qurl.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qurlquery.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qfile.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qfiledevice.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qvector2d.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qtouchdevice.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QByteArray \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QMutex \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QSocketNotifier \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsocketnotifier.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QDebug
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o backstagemanager.o ../epd-ui/backstagemanager.cpp
 
 childline.o: ../epd-ui/Module/childline.cpp ../epd-ui/Module/childline.h \
@@ -2074,6 +2458,199 @@ IT8951_USB.o: ../epd-ui/e-paper/IT8951_USB.c ../epd-ui/e-paper/IT8951_USB.h \
 IT8951_CMD.o: ../epd-ui/e-paper/IT8951_CMD.c ../epd-ui/e-paper/IT8951_CMD.h
 	$(CC) -c $(CFLAGS) $(INCPATH) -o IT8951_CMD.o ../epd-ui/e-paper/IT8951_CMD.c
 
+serial.o: ../epd-ui/serial/serial.cpp ../epd-ui/serial/serial.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QObject \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qobject.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qobjectdefs.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qnamespace.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qglobal.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qconfig-bootstrapped.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qconfig.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qtcore-config.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsystemdetection.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qprocessordetection.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qcompilerdetection.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qtypeinfo.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsysinfo.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qlogging.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qflags.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qatomic.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qbasicatomic.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qatomic_bootstrap.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qgenericatomic.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qatomic_cxx11.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qatomic_msvc.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qglobalstatic.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qmutex.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qnumeric.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qversiontagging.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qobjectdefs_impl.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qstring.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qchar.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qbytearray.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qrefcount.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qarraydata.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qstringbuilder.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qlist.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qalgorithms.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qiterator.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qhashfunctions.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qpair.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qbytearraylist.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qstringlist.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qregexp.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qstringmatcher.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qcoreevent.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qscopedpointer.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qmetatype.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qvarlengtharray.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qcontainerfwd.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qobject_impl.h \
+		/usr/local/qt5lib/Qt5.9/include/QtWidgets/QWidget \
+		/usr/local/qt5lib/Qt5.9/include/QtWidgets/qwidget.h \
+		/usr/local/qt5lib/Qt5.9/include/QtWidgets/qtwidgetsglobal.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qtguiglobal.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qtgui-config.h \
+		/usr/local/qt5lib/Qt5.9/include/QtWidgets/qtwidgets-config.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qwindowdefs.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qwindowdefs_win.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qmargins.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qpaintdevice.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qrect.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsize.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qpoint.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qpalette.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qcolor.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qrgb.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qrgba64.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qbrush.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qvector.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qmatrix.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qpolygon.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qregion.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qdatastream.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qiodevice.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qline.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qtransform.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qpainterpath.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qimage.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qpixelformat.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qpixmap.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsharedpointer.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qshareddata.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qhash.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsharedpointer_impl.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qfont.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qfontmetrics.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qfontinfo.h \
+		/usr/local/qt5lib/Qt5.9/include/QtWidgets/qsizepolicy.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qcursor.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qkeysequence.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qevent.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qvariant.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qmap.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qdebug.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qtextstream.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qlocale.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qset.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qcontiguouscache.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qurl.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qurlquery.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qfile.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qfiledevice.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qvector2d.h \
+		/usr/local/qt5lib/Qt5.9/include/QtGui/qtouchdevice.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QByteArray \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QMutex \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QSocketNotifier \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsocketnotifier.h \
+		../epd-ui/tcp/client.h \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/QTcpSocket \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qtcpsocket.h \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qtnetworkglobal.h \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qtnetwork-config.h \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qabstractsocket.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QSettings \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsettings.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QVariant \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QDebug
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o serial.o ../epd-ui/serial/serial.cpp
+
+client.o: ../epd-ui/tcp/client.cpp ../epd-ui/tcp/client.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QObject \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qobject.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qobjectdefs.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qnamespace.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qglobal.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qconfig-bootstrapped.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qconfig.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qtcore-config.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsystemdetection.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qprocessordetection.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qcompilerdetection.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qtypeinfo.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsysinfo.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qlogging.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qflags.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qatomic.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qbasicatomic.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qatomic_bootstrap.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qgenericatomic.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qatomic_cxx11.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qatomic_msvc.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qglobalstatic.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qmutex.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qnumeric.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qversiontagging.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qobjectdefs_impl.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qstring.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qchar.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qbytearray.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qrefcount.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qarraydata.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qstringbuilder.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qlist.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qalgorithms.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qiterator.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qhashfunctions.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qpair.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qbytearraylist.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qstringlist.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qregexp.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qstringmatcher.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qcoreevent.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qscopedpointer.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qmetatype.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qvarlengtharray.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qcontainerfwd.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qobject_impl.h \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/QTcpSocket \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qtcpsocket.h \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qtnetworkglobal.h \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qtnetwork-config.h \
+		/usr/local/qt5lib/Qt5.9/include/QtNetwork/qabstractsocket.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qiodevice.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qdebug.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qhash.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qmap.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qtextstream.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qlocale.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qvariant.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qshareddata.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qvector.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qpoint.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qset.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qcontiguouscache.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsharedpointer.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsharedpointer_impl.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QSettings \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qsettings.h \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QVariant \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QDebug \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/QTextCodec \
+		/usr/local/qt5lib/Qt5.9/include/QtCore/qtextcodec.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o client.o ../epd-ui/tcp/client.cpp
+
 qrc_image.o: qrc_image.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o qrc_image.o qrc_image.cpp
 
@@ -2097,6 +2674,12 @@ moc_childline.o: moc_childline.cpp
 
 moc_stationname.o: moc_stationname.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_stationname.o moc_stationname.cpp
+
+moc_serial.o: moc_serial.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_serial.o moc_serial.cpp
+
+moc_client.o: moc_client.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_client.o moc_client.cpp
 
 ####### Install
 
