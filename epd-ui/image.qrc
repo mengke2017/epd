@@ -1,0 +1,13 @@
+<RCC>
+    <qresource prefix="/new/prefix1">
+        <file>che.bmp</file>
+        <file>dian.bmp</file>
+        <file>line.bmp</file>
+        <file>line00.bmp</file>
+        <file>line01.bmp</file>
+        <file>dro.bmp</file>
+        <file>d.png</file>
+        <file>che.png</file>
+    </qresource>
+    <qresource prefix="/new/weather"/>
+</RCC>

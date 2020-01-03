@@ -1,0 +1,25 @@
+<RCC>
+    <qresource prefix="/new/prefix1">
+        <file>baoxue.bmp</file>
+        <file>baoyu.bmp</file>
+        <file>dabaoxue.bmp</file>
+        <file>dabaoyu.bmp</file>
+        <file>daxie.bmp</file>
+        <file>dayu.bmp</file>
+        <file>duoyun.bmp</file>
+        <file>leizhengyu.bmp</file>
+        <file>mai.bmp</file>
+        <file>qing.bmp</file>
+        <file>shachengbao.bmp</file>
+        <file>taifeng.bmp</file>
+        <file>teidabaoyu.bmp</file>
+        <file>wu.bmp</file>
+        <file>xiaoxie.bmp</file>
+        <file>xiaoyu.bmp</file>
+        <file>ying.bmp</file>
+        <file>yujiaxie.bmp</file>
+        <file>zhengyu.bmp</file>
+        <file>zhongxie.bmp</file>
+        <file>zhongyu.bmp</file>
+    </qresource>
+</RCC>

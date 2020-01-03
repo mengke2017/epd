@@ -1,0 +1,26 @@
+#ifndef PAGE_INFO_H
+#define PAGE_INFO_H
+class LNode
+{
+public:
+    int data;     //数据域
+    LNode * next;  //指针域
+};
+
+class List
+{
+public:
+    List();
+    ~List();
+    void CreateList();
+    void Insert(int data, int index, bool flag = true);
+    void Delete(int index);
+    void printList();
+    void getData(int index);
+    void exchange(int index1, int index2);
+    int getLength();
+private:
+    LNode *head;//头结点
+};
+
+#endif  // PAGE_INFO_H
