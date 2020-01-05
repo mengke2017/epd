@@ -28,6 +28,8 @@ MainWindow::MainWindow(QWidget *parent) :
     QThread *thread = new QThread(this);
     service->moveToThread(thread);
     connect(thread,SIGNAL(started()),service,SLOT(start()),Qt::QueuedConnection);
+    connect(service,SIGNAL(update_status(QList<LineStatus>))
+            ,this,SLOT(update_status(QList<LineStatus>)));
 
     mainpage_line_max = 10;
     childpage_line_max = 6;
@@ -168,19 +170,16 @@ void MainWindow::showNextPage(int page)
                 mainpage_list.at(i)->show();
                 if(i > 2*mainpage_line_max)
                     mainpage_list.at(i)->update_line("2","1","05:00","22:00","1","1");
-                qWarning("1");
             }
             main_tail = i;
         } else if (main_tail == line_total) {  // 如果创建到最后一个了，回到开头
             for(uint8_t i = 0; i < mainpage_line_max; i++) {  // mainpage_line_max是大于mainpage_list.len的
                 mainpage_list.at(i)->show();
                 main_tail = i;
-                qWarning("2");
             }
             main_tail += 1;
             for(uint8_t i = mainpage_line_max; i < line_total; i++) {
                 mainpage_list.at(i)->hide();
-                qWarning("3");
             }
         }
     } else if(page == CHILD_PAGE) {
@@ -190,21 +189,30 @@ void MainWindow::showNextPage(int page)
             for(i = child_tail; i < line_total && (i - child_tail) < childpage_line_max; i++) {
                 childpage_list.at(i-child_tail)->hide();
                 childpage_list.at(i)->show();
-                if(i > 2*childpage_line_max)
+               // if(i > 2*childpage_line_max)
                 //    childpage_list.at(i)->update_line("2","1","05:00","22:00","1","1");
-                qWarning("1");
             }
             child_tail = i;
         } else if (child_tail == line_total) {  // 如果创建到最后一个了，回到开头
             for(uint8_t i = 0; i < childpage_line_max; i++) {  // mainpage_line_max是大于mainpage_list.len的
                 childpage_list.at(i)->show();
                 child_tail = i;
-                qWarning("2");
             }
             child_tail += 1;
             for(uint8_t i = childpage_line_max; i < line_total; i++) {
                 childpage_list.at(i)->hide();
-                qWarning("3");
+            }
+        }
+    }
+}
+
+void MainWindow::update_status(QList<LineStatus> status_list)
+{
+    for(uint16_t i = 0; i < status_list.length(); i++) {
+        for(uint16_t j = 0; j < line_total ;j++) {
+            if (status_list.at(i).stat_id.compare(childpage_list.at(j)->line_id->text())) {
+                childpage_list.at(j)->update_status(status_list.at(i));
+                mainpage_list.at(j)->update_status(status_list.at(i));
             }
         }
     }

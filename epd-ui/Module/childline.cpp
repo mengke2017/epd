@@ -119,3 +119,7 @@ void ChildLine::che_ico_list_clear()
         che_ico_list.clear();
     }
 }
+
+void ChildLine::update_status(LineStatus status) {
+    create_cheico(status.che_pos);
+}

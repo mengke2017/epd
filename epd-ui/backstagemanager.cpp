@@ -4,6 +4,7 @@
 BackstageManager::BackstageManager(QObject *parent):
     QObject(parent)
 {
+
    // start();
 }
 
@@ -25,17 +26,28 @@ void BackstageManager::start()
 void BackstageManager::ReadVehicleLocation()
 {
     vehicle_localtion Node;
-    QList<qint8> list;
+    QList<qint8> list_;
+    QList<LineStatus> status_list;
+    static int size = 0;
+ //   status_list = new LineStatus();
+
     while(!(Node = tcp_client->ReadSingle_vehicle()).vehicle_name.isEmpty()){
-        qDebug()<<Node.vehicle_name;
-        qDebug()<<Node.count;
-         qDebug()<<QString::number(Node.vehicle_amount);
-         for(int i = 0;i < Node.vehicle_amount;i++){
+
+        status_list.reserve(++size);
+        status_list[size-1].stat_id = Node.vehicle_name;
+        status_list[size-1].over_count = Node.count;
+        qDebug()<<Node.vehicle_name<<" "<<status_list.at(size-1).stat_id;
+        qDebug()<<Node.count<<" "<<status_list.at(size-1).over_count;
+        qDebug()<<QString::number(Node.vehicle_amount);
+        for(int i = 0;i < Node.vehicle_amount;i++){
             //qDebug()<<QString::number(Node.station_index[i]);
-             list.append(Node.station_index[i]);
-              qDebug()<<QString::number(list.at(i));
-         }
+            list_.append(Node.station_index[i]);
+            status_list[size-1].che_pos.append(Node.station_index[i]);
+            qDebug()<<QString::number(list_.at(i))<<" "<<QString::number(status_list.at(size-1).che_pos.at(i));
+        }
     }
-    qDebug()<<QString::number(list.at(2));
-    qDebug()<<QString::number(list.at(3));
+    size = 0;
+    emit update_status(status_list);
+//    qDebug()<<QString::number(list_.at(2));
+//    qDebug()<<QString::number(list_.at(3));
 }

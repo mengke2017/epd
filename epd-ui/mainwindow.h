@@ -52,6 +52,8 @@ private :
     void createChildpage(QList<PageInfo> page_info);
     void switchPage(int Index);
     void showNextPage(int page);
+public slots:
+    void update_status(QList<LineStatus>);
 private slots:
     void slotTimerOut();
 };

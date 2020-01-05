@@ -9,6 +9,7 @@
 #include "../epd-ui/backstagemanager.h"
 #include <QtCore/qbytearray.h>
 #include <QtCore/qmetatype.h>
+#include <QtCore/QList>
 #if !defined(Q_MOC_OUTPUT_REVISION)
 #error "The header file 'backstagemanager.h' doesn't include <QObject>."
 #elif Q_MOC_OUTPUT_REVISION != 67
@@ -21,8 +22,8 @@ QT_BEGIN_MOC_NAMESPACE
 QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
 struct qt_meta_stringdata_BackstageManager_t {
-    QByteArrayData data[4];
-    char stringdata0[44];
+    QByteArrayData data[6];
+    char stringdata0[76];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
@@ -32,13 +33,16 @@ struct qt_meta_stringdata_BackstageManager_t {
 static const qt_meta_stringdata_BackstageManager_t qt_meta_stringdata_BackstageManager = {
     {
 QT_MOC_LITERAL(0, 0, 16), // "BackstageManager"
-QT_MOC_LITERAL(1, 17, 19), // "ReadVehicleLocation"
-QT_MOC_LITERAL(2, 37, 0), // ""
-QT_MOC_LITERAL(3, 38, 5) // "start"
+QT_MOC_LITERAL(1, 17, 13), // "update_status"
+QT_MOC_LITERAL(2, 31, 0), // ""
+QT_MOC_LITERAL(3, 32, 17), // "QList<LineStatus>"
+QT_MOC_LITERAL(4, 50, 19), // "ReadVehicleLocation"
+QT_MOC_LITERAL(5, 70, 5) // "start"
 
     },
-    "BackstageManager\0ReadVehicleLocation\0"
-    "\0start"
+    "BackstageManager\0update_status\0\0"
+    "QList<LineStatus>\0ReadVehicleLocation\0"
+    "start"
 };
 #undef QT_MOC_LITERAL
 
@@ -48,16 +52,22 @@ static const uint qt_meta_data_BackstageManager[] = {
        7,       // revision
        0,       // classname
        0,    0, // classinfo
-       2,   14, // methods
+       3,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
        0,       // flags
-       0,       // signalCount
+       1,       // signalCount
+
+ // signals: name, argc, parameters, tag, flags
+       1,    1,   29,    2, 0x06 /* Public */,
 
  // slots: name, argc, parameters, tag, flags
-       1,    0,   24,    2, 0x0a /* Public */,
-       3,    0,   25,    2, 0x0a /* Public */,
+       4,    0,   32,    2, 0x0a /* Public */,
+       5,    0,   33,    2, 0x0a /* Public */,
+
+ // signals: parameters
+    QMetaType::Void, 0x80000000 | 3,    2,
 
  // slots: parameters
     QMetaType::Void,
@@ -72,12 +82,22 @@ void BackstageManager::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int
         BackstageManager *_t = static_cast<BackstageManager *>(_o);
         Q_UNUSED(_t)
         switch (_id) {
-        case 0: _t->ReadVehicleLocation(); break;
-        case 1: _t->start(); break;
+        case 0: _t->update_status((*reinterpret_cast< QList<LineStatus>(*)>(_a[1]))); break;
+        case 1: _t->ReadVehicleLocation(); break;
+        case 2: _t->start(); break;
         default: ;
         }
+    } else if (_c == QMetaObject::IndexOfMethod) {
+        int *result = reinterpret_cast<int *>(_a[0]);
+        void **func = reinterpret_cast<void **>(_a[1]);
+        {
+            typedef void (BackstageManager::*_t)(QList<LineStatus> );
+            if (*reinterpret_cast<_t *>(func) == static_cast<_t>(&BackstageManager::update_status)) {
+                *result = 0;
+                return;
+            }
+        }
     }
-    Q_UNUSED(_a);
 }
 
 const QMetaObject BackstageManager::staticMetaObject = {
@@ -105,15 +125,22 @@ int BackstageManager::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 2)
+        if (_id < 3)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 2;
+        _id -= 3;
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 2)
+        if (_id < 3)
             *reinterpret_cast<int*>(_a[0]) = -1;
-        _id -= 2;
+        _id -= 3;
     }
     return _id;
+}
+
+// SIGNAL 0
+void BackstageManager::update_status(QList<LineStatus> _t1)
+{
+    void *_a[] = { nullptr, const_cast<void*>(reinterpret_cast<const void*>(&_t1)) };
+    QMetaObject::activate(this, &staticMetaObject, 0, _a);
 }
 QT_WARNING_POP
 QT_END_MOC_NAMESPACE

@@ -103,3 +103,8 @@ void MainLine::updatePrice_value(QString price)
     price_value->setText(price + "元");
     price_value->update();
 }
+void MainLine::update_status(LineStatus status)
+{
+    updateOver_stat(status.over_count);
+ //   update
+}

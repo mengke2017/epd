@@ -7,6 +7,7 @@
 #include <QTextEdit>
 #include <QDebug>
 #include "Module/stationname.h"
+#include "customize.h"
 
 #define FIRST_STATION  165
 #define LAST_STATION   1065
@@ -33,5 +34,6 @@ public:
     void updateTime(QString);
     void line_list_clear();
     void che_ico_list_clear();
+    void update_status(LineStatus status);
 };
 #endif  // CHILDLINE_H

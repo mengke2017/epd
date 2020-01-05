@@ -6,6 +6,7 @@
 #include <QLabel>
 #include <QTextEdit>
 #include <QDebug>
+#include "customize.h"
 
 class MainLine:public QFrame
 {
@@ -32,6 +33,7 @@ public:
     void updatePrice_value(QString price);
     void update_line(QString id, QString info, QString Begtime,
                      QString Endtime, QString price, QString count);
+    void update_status(LineStatus status);
 };
 
 #endif  // MAINLINE_H
