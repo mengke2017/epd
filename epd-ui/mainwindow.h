@@ -53,7 +53,7 @@ private :
     void switchPage(int Index);
     void showNextPage(int page);
 public slots:
-    void update_status(QList<LineStatus>);
+    void update_status(QString,QString,QList<qint8>);
 private slots:
     void slotTimerOut();
 };

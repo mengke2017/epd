@@ -11,7 +11,7 @@ typedef struct
 {
     QString stat_id;
     QString over_count;
-    QList<int> che_pos;
+    QList<qint8> che_pos;
 } LineStatus;  // update
 
 typedef struct {

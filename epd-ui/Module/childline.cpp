@@ -75,7 +75,7 @@ void ChildLine::create_line(QString id, int8_t current_index, int8_t station_tot
     update_info(timeS, timeE, price);
 }
 
-void ChildLine::create_cheico(QList<int> che_index)
+void ChildLine::create_cheico(QList<qint8> che_index)
 {
     if(!che_ico_list.isEmpty()) {
         che_ico_list_clear();

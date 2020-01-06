@@ -15,7 +15,7 @@ private:
     client           *tcp_client;
     serial           *serial_2;
 signals:
-    void update_status(QList<LineStatus>);
+    void update_status(QString,QString,QList<qint8>);
 public slots:
     void ReadVehicleLocation(void);
     void start(void);

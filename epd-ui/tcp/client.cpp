@@ -95,11 +95,13 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
                     case 13://车辆分布位置
                         {
                             QStringList Data_buf;
+                            qDebug()<<"444";
                             Data_buf = data_list.at(5).split(SINGAL_VEHICLE_END);//通过</line>分解字符串
                             if(Data_buf.at(Data_buf.size() - 1).contains(VEHICLE_LOCATION_FLAG,Qt::CaseSensitive)){//帧结构符合协议
                                 for(int i = 0;i < Data_buf.size() - 1;i++){//去掉车辆信息中的<lines>结尾
                                     AddVehicleLocationTolist(Data_buf.at(i));
                                 }
+                                //qDebug()<<"444";
                                 emit veh_data_re();
                             }
 

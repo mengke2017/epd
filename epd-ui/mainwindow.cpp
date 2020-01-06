@@ -24,12 +24,13 @@ MainWindow::MainWindow(QWidget *parent) :
     timer = new QTimer();
 //    m_pStackedWidget = new QStackedWidget();
 
-    service = new BackstageManager();
-    QThread *thread = new QThread(this);
+    service = new BackstageManager(this);
+    QThread *thread = new QThread();
     service->moveToThread(thread);
+    service->start();
     connect(thread,SIGNAL(started()),service,SLOT(start()),Qt::QueuedConnection);
-    connect(service,SIGNAL(update_status(QList<LineStatus>))
-            ,this,SLOT(update_status(QList<LineStatus>)));
+    connect(service,SIGNAL(update_status(QString,QString,QList<qint8>))
+            ,this,SLOT(update_status(QString,QString,QList<qint8>)));
 
     mainpage_line_max = 10;
     childpage_line_max = 6;
@@ -47,7 +48,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(timer, SIGNAL(timeout()), this, SLOT(slotTimerOut()));
     timer->start(1000);
     ui->centralWidget->hide();
-    init_device();
+//    init_device();
 
 }
 
@@ -88,7 +89,7 @@ void MainWindow::slotTimerOut()
         i = 1;
         qWarning("init");
     } else {
-        dis_epd(AUTO_MODE);
+//        dis_epd(AUTO_MODE);
     }
     timer->start(10000);
 }
@@ -124,7 +125,7 @@ void MainWindow::createChildpage(QList<PageInfo> page_info )
 {
     ChildLine *line;
     uint16_t ypos = 0, max_y = 0;
-    QList<int> array = {0,7,2,5,14,12};
+   // QList<int> array = {0,7,2,5,14,12};
     static QList<QString> list;
     list << "杭州图软科技杭州图软科技"<<"杭州图软科技杭州图软科技西湖站"<<"武林小广场"<<"杭州图软科技"<<"西湖站"<<"武林小广场"
          << "杭州图软科技"<<"西湖站"<<"西湖武林小广场"<<"杭州图软科技"<<"西湖站"<<"武林小广场"
@@ -148,7 +149,7 @@ void MainWindow::createChildpage(QList<PageInfo> page_info )
                           "22:00", "2");
         line->setParent(bot);
         }
-        line->create_cheico(array);
+        //line->create_cheico(array);
         childpage_list.append(line);
     }
 }
@@ -206,14 +207,15 @@ void MainWindow::showNextPage(int page)
     }
 }
 
-void MainWindow::update_status(QList<LineStatus> status_list)
+void MainWindow::update_status(QString stat_id,QString count,QList<qint8> pos)
 {
-    for(uint16_t i = 0; i < status_list.length(); i++) {
-        for(uint16_t j = 0; j < line_total ;j++) {
-            if (status_list.at(i).stat_id.compare(childpage_list.at(j)->line_id->text())) {
-                childpage_list.at(j)->update_status(status_list.at(i));
-                mainpage_list.at(j)->update_status(status_list.at(i));
-            }
-        }
-    }
+    qDebug()<<"111111";
+//    for(uint16_t i = 0; i < status_list.length(); i++) {
+//        for(uint16_t j = 0; j < line_total ;j++) {
+//            if (status_list.at(i).stat_id.compare(childpage_list.at(j)->line_id->text())) {
+//                childpage_list.at(j)->update_status(status_list.at(i));
+//                mainpage_list.at(j)->update_status(status_list.at(i));
+//            }
+//        }
+//    }
 }
