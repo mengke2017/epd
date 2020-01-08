@@ -289,7 +289,7 @@ bool FileUtils::createFile( const QString& fileName, int32_t initSize /*= 0*/, b
     return true;
 }
 
-qint64 FileUtils::getFileSize( const QString& filePath )
+int64_t FileUtils::getFileSize( const QString& filePath )
 {
     QString fileFullPath = getFullPath(filePath);
     QFileInfo info(fileFullPath);

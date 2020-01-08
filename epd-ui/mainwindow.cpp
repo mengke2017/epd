@@ -5,6 +5,7 @@
 #include <QThread>
 #include <QFile>
 #include <QtXml>
+#include <QDebug>
 #include <QDomDocument>
 
 #define MAX_LINE_COUNT_MAIN   10
@@ -46,12 +47,12 @@ MainWindow::MainWindow(QWidget *parent) :
     bot = new QFrame();
     bot->setGeometry(0,0,1200,1600);
 
-    line_total = 23;
+    line_total = 0;
     connect(timer, SIGNAL(timeout()), this, SLOT(slotTimerOut()));
     timer->start(1000);
     ui->centralWidget->hide();
 //    init_device();
-
+//    read_lineinfo();
 }
 
 MainWindow::~MainWindow()
@@ -68,25 +69,26 @@ void MainWindow::slotTimerOut()
 
     timer->stop();
     if(i == 1) {
-        showNextPage(MAIN_PAGE);
-    //    top->hide();
-    //    bot->show();
-        top->repaint();
-        top->show();
+    //    showNextPage(MAIN_PAGE);
+        top->hide();
+        bot->show();
+    //    top->repaint();
+    //    top->show();
         i = 0;
         qWarning("bot");
     }  else if(i == 0){
-        showNextPage(MAIN_PAGE);
-    //    bot->hide();
-    //    top->show();
-        top->repaint();
+    //    showNextPage(MAIN_PAGE);
+        bot->hide();
         top->show();
+    //    top->repaint();
+        bot->show();
         i = 1;
         qWarning("top");
     }
     if(i == -1){
-        createMainpage(page_info);
-        createChildpage(page_info);
+    //    createMainpage(page_info);
+    //    createChildpage(page_info);
+        read_lineinfo();
         top->show();
         i = 1;
         qWarning("init");
@@ -105,19 +107,15 @@ void MainWindow::createMainpage(QList<PageInfo> page_info)
     for (int16_t i = 0; i < line_total; i++) {
         ypos = (i*MAIN_LINE_DIST)%max_y;
         line = new MainLine(MAIN_LINE_FIRST + ypos);
+        line->creat_line(page_info.at(i).stat_id, page_info.at(i).endstat_name,
+                          page_info.at(i).Begtime, page_info.at(i).Endtime,
+                          page_info.at(i).price);
         line->setParent(sec_half);
         if(i < mainpage_line_max) {
-            line->creat_line("0", "杭州", "05:00", "22:00", "2");
+           // line->creat_line("0", "杭州", "05:00", "22:00", "2");
             main_tail = i;
         } else {
-//        line->update_line(page_info.at(i).stat_id, page_info.at(i).endstat_name,
-//                          page_info.at(i).Begtime, page_info.at(i).Endtime,
-//                          page_info.at(i).price, page_info.at(i).over_count);
-
-        line->creat_line("1", "杭州",
-                          "05:00", "22:00",
-                          "2");
-        line->hide();
+            line->hide();
         }
         mainpage_list.append(line);
     }
@@ -126,34 +124,31 @@ void MainWindow::createMainpage(QList<PageInfo> page_info)
 void MainWindow::createChildpage(QList<PageInfo> page_info )
 {
     ChildLine *line;
-    uint16_t ypos = 0, max_y = 0;
+    uint16_t ypos = 0, max_y = 0;/*
    // QList<int> array = {0,7,2,5,14,12};
     static QList<QString> list;
     list << "杭州图软科技杭州图软科技"<<"杭州图软科技杭州图软科技西湖站"<<"武林小广场"<<"杭州图软科技"<<"西湖站"<<"武林小广场"
          << "杭州图软科技"<<"西湖站"<<"西湖武林小广场"<<"杭州图软科技"<<"西湖站"<<"武林小广场"
-         <<"杭州图软科技"<<"西湖站"<<"武林小广场"<<"杭州图软科技";
+         <<"杭州图软科技"<<"西湖站"<<"武林小广场"<<"杭州图软科技";*/
     max_y = (childpage_line_max)*320;
     for(int16_t i = 0; i < line_total; i++) {
         ypos = (i*320)%max_y;
         line = new ChildLine(15+ypos);
+
+        line->create_line(page_info.at(i).stat_id, page_info.at(i).current_index,
+                          page_info.at(i).station_total,
+                          page_info.at(i).name_list, page_info.at(i).timeWin,
+                          page_info.at(i).timeSum, page_info.at(i).price);
+
+        line->setParent(bot);
         if(i < childpage_line_max) {
-            line->setParent(bot);
-            line->create_line("0", 1,16,
-                              list, "05:00",
-                              "22:00", "2");
             child_tail = i;
         } else {
-//        line->create_line(page_info.at(i).stat_id, page_info.at(i).current_index,page_info.at(i).station_total,
-//                          page_info.at(i).name_list, page_info.at(i).Begtime,
-//                          page_info.at(i).Endtime, page_info.at(i).price);
-        line->create_line("1", 1,16,
-                          list, "05:00",
-                          "22:00", "2");
-        line->setParent(bot);
+            line->hide();
         }
-        //line->create_cheico(array);
         childpage_list.append(line);
     }
+    child_tail +=1;
 }
 
 //void MainWindow::switchPage(int Index)
@@ -226,17 +221,18 @@ void MainWindow::read_lineinfo()
     QFile file("./line.xml");
     QString str;
     QString line;
-    int star_index = 0, end_index = 0, index = 0;
+    int star_index = 0, end_index = 0;
     QList<PageInfo> page_info;
     PageInfo info;
     QStringList lineinfo;
+    qint16 count = 0;
     if (!file.open(QIODevice::ReadOnly))
     {
         return;
     }
-    QTextCodec *gbk = QTextCodec::codecForName("gbk");
+ //   QTextCodec *gbk = QTextCodec::codecForName("gbk");
     QString text = file.readAll();
-    str = gbk->toUnicode(text.toLocal8Bit());
+    str = text;// gbk->toUnicode(text.toLocal8Bit());
     file.close();
     while(1) {
         /*
@@ -247,10 +243,14 @@ void MainWindow::read_lineinfo()
         */
         // 获取线路基本信息
         star_index = str.indexOf("<line id=");
-        if(star_index < 0)
+        qWarning("index:%d", star_index);
+        if(star_index < 0) {
+            qWarning()<<"break";
             break;
-        end_index = str.indexOf('>');
-        line = str.mid(star_index, end_index - star_index);  // 不包括最后的’>‘
+        }
+        end_index = str.indexOf('>',star_index);
+        line = str.mid(star_index, end_index - star_index).simplified();  // 不包括最后的’>‘
+        str = str.mid(end_index+1).simplified();
         lineinfo = line.split("\"");
         // 获取线路名称
     //    info.stat_id = line.section("\"",3,3);  // 截取线路名称 获取从第1个“分割的块开始到第1个“分割的块结束
@@ -271,39 +271,37 @@ void MainWindow::read_lineinfo()
         info.price = info.price.simplified();
         /*<station id="1929381411" name="飞云渡-西环线" index="1" latitude="27.78393" longitude="120.61973" subway="" />*/
         //获取站点名
-        star_index = str.indexOf("<station id=",end_index);
+        star_index = str.indexOf("<station id=");
         end_index = str.indexOf("</line>");
+        if(star_index < 0 || end_index < 0)
+            return;
         line = str.mid(star_index, end_index - star_index);  // 不包括最后的"</line>"
         lineinfo.clear();
         lineinfo = line.split("/>");  // 通过“分解字符串
         QStringList list;
         for(uint16_t i = 0; i < lineinfo.length(); i++) {
             list = lineinfo.at(i).split("\"");
+            if(list.size() < 3)
+                continue;
             info.name_list.append(list.at(3).simplified());
             list.clear();
         }
+      //  qDebug()<<"stat_id:"<<info.stat_id;
+      //  qDebug()<<"price:"<<info.price;
+      //  qDebug()<<"timeSum:"<<info.timeSum;
+      // qDebug()<<"timeWin:"<<info.timeWin;
+      //  qDebug()<<"station_total:"<<QString::number(info.station_total);
+        //for(uint16_t i = 0; i < info.name_list.length();i++)
+      //  {
+        //    qDebug()<<"name_list:"<<info.name_list.at(i);
+      //  }
+        info.endstat_name = info.name_list.at(info.station_total-1);
         page_info.append(info);
+        info.name_list.clear();
+        count++;
     }
-//    if (!doc.setContent(&file))
-//    {
-//        file.close();
-//        return false;
-//    }
-//    file.close();
+    line_total = count;
 
-//    QDomElement root = doc.documentElement();//读取根节点
-//    QDomNode node = root.firstChild();//读取第一个子节点   QDomNode 节点
-//    while (!node.isNull())
-//    {
-//        QString tagName = node.toElement().tagName();  //节点元素名称
-//        if (tagName.compare("Mac") == 0) //节点标记查找
-//        {
-//            infodata._strMac = node.toElement().text();//读取节点文本
-//        }
-//        else if (tagName.compare("System") == 0)
-//        {
-//            infodata._strSystem = node.toElement().text();
-//        }
-//        node = node.nextSibling();//读取下一个兄弟节点
-//    }
+    createChildpage(page_info);
+    createMainpage(page_info);
 }

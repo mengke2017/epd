@@ -72,7 +72,7 @@ void MainLine::creat_line(QString id="", QString info="", QString Begtime="", QS
     if(!info.isEmpty())
         line_info->setText("开往"+info);
     if((!Begtime.isEmpty()) && (!Endtime.isEmpty()))
-        beg_end_time_value->setText(Begtime + " - " + Endtime);
+        beg_end_time_value->setText(Begtime.remove(5,1));
     if(!price.isEmpty())
         price_value->setText(price + "元");
 }

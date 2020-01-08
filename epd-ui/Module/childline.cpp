@@ -52,6 +52,8 @@ void ChildLine::create_line(QString id, int8_t current_index, int8_t station_tot
 {
     StationNmae* stat_name;
     int16_t dist = 0;
+    if(station_total > 26)
+        station_total = 26;
     if(station_total > 1) {
         dist = VAILD_DIST/(station_total-1);
     }
@@ -72,7 +74,7 @@ void ChildLine::create_line(QString id, int8_t current_index, int8_t station_tot
         }
     }
     update_line_id(id);
-    update_info(timeS, timeE, price);
+    update_info(timeS.mid(0,5), timeS.mid(7,5), price);
 }
 
 void ChildLine::create_cheico(QList<qint8> che_index)
