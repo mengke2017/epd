@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui network
+QT       += core gui network xml
 
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
@@ -36,7 +36,8 @@ SOURCES += \
     e-paper/IT8951_USB.c \
     e-paper/IT8951_CMD.c \
     serial/serial.cpp \
-    tcp/client.cpp
+    tcp/client.cpp \
+    fileutils.cpp
 
 HEADERS += \
         mainwindow.h \
@@ -50,7 +51,8 @@ HEADERS += \
     e-paper/IT8951_USB.h \
     e-paper/IT8951_CMD.h \
     serial/serial.h \
-    tcp/client.h
+    tcp/client.h \
+    fileutils.h
 
 FORMS += \
         mainwindow.ui

@@ -3,6 +3,9 @@
 #include "e-paper/IT8951_USB.h"
 #include "e-paper/miniGUI.h"
 #include <QThread>
+#include <QFile>
+#include <QtXml>
+#include <QDomDocument>
 
 #define MAX_LINE_COUNT_MAIN   10
 #define MAX_LINE_COUNT_CHILD  5
@@ -22,13 +25,12 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     timer = new QTimer();
-//    m_pStackedWidget = new QStackedWidget();
 
-    service = new BackstageManager(this);
-    QThread *thread = new QThread();
-    service->moveToThread(thread);
-    service->start();
-    connect(thread,SIGNAL(started()),service,SLOT(start()),Qt::QueuedConnection);
+    service = new BackstageManager();
+//    QThread *thread = new QThread(this);
+//    service->moveToThread(thread);
+//    service->start();
+//    connect(thread,SIGNAL(started()),service,SLOT(start()),Qt::QueuedConnection);
     connect(service,SIGNAL(update_status(QString,QString,QList<qint8>))
             ,this,SLOT(update_status(QString,QString,QList<qint8>)));
 
@@ -105,16 +107,16 @@ void MainWindow::createMainpage(QList<PageInfo> page_info)
         line = new MainLine(MAIN_LINE_FIRST + ypos);
         line->setParent(sec_half);
         if(i < mainpage_line_max) {
-            line->update_line("0", "杭州", "05:00", "22:00", "2", "6");
+            line->creat_line("0", "杭州", "05:00", "22:00", "2");
             main_tail = i;
         } else {
 //        line->update_line(page_info.at(i).stat_id, page_info.at(i).endstat_name,
 //                          page_info.at(i).Begtime, page_info.at(i).Endtime,
 //                          page_info.at(i).price, page_info.at(i).over_count);
 
-        line->update_line("1", "杭州",
+        line->creat_line("1", "杭州",
                           "05:00", "22:00",
-                          "2", "6");
+                          "2");
         line->hide();
         }
         mainpage_list.append(line);
@@ -170,7 +172,7 @@ void MainWindow::showNextPage(int page)
                 mainpage_list.at(i-main_tail)->hide();
                 mainpage_list.at(i)->show();
                 if(i > 2*mainpage_line_max)
-                    mainpage_list.at(i)->update_line("2","1","05:00","22:00","1","1");
+                    mainpage_list.at(i)->creat_line("2","1","05:00","22:00","1");
             }
             main_tail = i;
         } else if (main_tail == line_total) {  // 如果创建到最后一个了，回到开头
@@ -210,12 +212,98 @@ void MainWindow::showNextPage(int page)
 void MainWindow::update_status(QString stat_id,QString count,QList<qint8> pos)
 {
     qDebug()<<"111111";
-//    for(uint16_t i = 0; i < status_list.length(); i++) {
-//        for(uint16_t j = 0; j < line_total ;j++) {
-//            if (status_list.at(i).stat_id.compare(childpage_list.at(j)->line_id->text())) {
-//                childpage_list.at(j)->update_status(status_list.at(i));
-//                mainpage_list.at(j)->update_status(status_list.at(i));
-//            }
+    for(uint16_t j = 0; j < line_total ;j++) {
+        if (stat_id.compare(childpage_list.at(j)->line_id->text())) {
+            childpage_list.at(j)->update_status(pos);
+            mainpage_list.at(j)->update_status(count);
+        }
+    }
+}
+
+void MainWindow::read_lineinfo()
+{
+ //   QDomDocument doc;
+    QFile file("./line.xml");
+    QString str;
+    QString line;
+    int star_index = 0, end_index = 0, index = 0;
+    QList<PageInfo> page_info;
+    PageInfo info;
+    QStringList lineinfo;
+    if (!file.open(QIODevice::ReadOnly))
+    {
+        return;
+    }
+    QTextCodec *gbk = QTextCodec::codecForName("gbk");
+    QString text = file.readAll();
+    str = gbk->toUnicode(text.toLocal8Bit());
+    file.close();
+    while(1) {
+        /*
+            <line id="335544524" name="1路" ic_card_price="0" country_type="0" isUP=""
+            staCount="32" curstaid="1929380848" sSta_Summers="06:00--21:30" sSta_Winters="06:00--21:30"
+            eSta_Summers="06:00--21:30" eSta_Winters="06:00--21:30"
+            price="2" comment="" price_range="2元" avg_speed="25">
+        */
+        // 获取线路基本信息
+        star_index = str.indexOf("<line id=");
+        if(star_index < 0)
+            break;
+        end_index = str.indexOf('>');
+        line = str.mid(star_index, end_index - star_index);  // 不包括最后的’>‘
+        lineinfo = line.split("\"");
+        // 获取线路名称
+    //    info.stat_id = line.section("\"",3,3);  // 截取线路名称 获取从第1个“分割的块开始到第1个“分割的块结束
+        info.stat_id = lineinfo.at(3);
+        if(info.stat_id.right(1) == "路") {
+            info.stat_id = info.stat_id.left(info.stat_id.count()-1);
+            info.stat_id = info.stat_id.simplified();  // 去除空白字符
+        }
+        // 获取总站点数
+        info.station_total = lineinfo.at(11).simplified().toInt();
+        // 获取发车时间
+        info.timeSum = lineinfo.at(15);
+        info.timeWin = lineinfo.at(17);
+        info.timeSum = info.timeSum.simplified();
+        info.timeWin = info.timeWin.simplified();
+        // 获取价格
+        info.price = lineinfo.at(23);
+        info.price = info.price.simplified();
+        /*<station id="1929381411" name="飞云渡-西环线" index="1" latitude="27.78393" longitude="120.61973" subway="" />*/
+        //获取站点名
+        star_index = str.indexOf("<station id=",end_index);
+        end_index = str.indexOf("</line>");
+        line = str.mid(star_index, end_index - star_index);  // 不包括最后的"</line>"
+        lineinfo.clear();
+        lineinfo = line.split("/>");  // 通过“分解字符串
+        QStringList list;
+        for(uint16_t i = 0; i < lineinfo.length(); i++) {
+            list = lineinfo.at(i).split("\"");
+            info.name_list.append(list.at(3).simplified());
+            list.clear();
+        }
+        page_info.append(info);
+    }
+//    if (!doc.setContent(&file))
+//    {
+//        file.close();
+//        return false;
+//    }
+//    file.close();
+
+//    QDomElement root = doc.documentElement();//读取根节点
+//    QDomNode node = root.firstChild();//读取第一个子节点   QDomNode 节点
+//    while (!node.isNull())
+//    {
+//        QString tagName = node.toElement().tagName();  //节点元素名称
+//        if (tagName.compare("Mac") == 0) //节点标记查找
+//        {
+//            infodata._strMac = node.toElement().text();//读取节点文本
 //        }
+//        else if (tagName.compare("System") == 0)
+//        {
+//            infodata._strSystem = node.toElement().text();
+//        }
+//        node = node.nextSibling();//读取下一个兄弟节点
 //    }
 }

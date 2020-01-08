@@ -120,6 +120,6 @@ void ChildLine::che_ico_list_clear()
     }
 }
 
-void ChildLine::update_status(LineStatus status) {
-    create_cheico(status.che_pos);
+void ChildLine::update_status(QList<qint8> pos) {
+    create_cheico(pos);
 }

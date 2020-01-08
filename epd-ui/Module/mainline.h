@@ -31,9 +31,9 @@ public:
     void updateOver_stat(QString count);
     void updateBeg_end_time(QString Begtime, QString Endtime);
     void updatePrice_value(QString price);
-    void update_line(QString id, QString info, QString Begtime,
-                     QString Endtime, QString price, QString count);
-    void update_status(LineStatus status);
+    void creat_line(QString id, QString info, QString Begtime,
+                     QString Endtime, QString price);
+    void update_status(QString);
 };
 
 #endif  // MAINLINE_H

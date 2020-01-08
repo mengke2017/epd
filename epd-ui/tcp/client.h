@@ -8,6 +8,8 @@
 #include <iterator>
 #include <list>
 #include <algorithm>
+#include <QTimer>
+#include "fileutils.h"
 //#include <iostream>
 #define HEADER                  "$GPRS"
 #define END                     "$END$"
@@ -19,6 +21,36 @@
 #define VEHICLE_LOCATION_FLAG   "<lines>" //
 #define SINGAL_VEHICLE_END      "</line>" //单独一条线路的结尾
 #define SPLIT_CHAR              "vehicle "
+
+#define BACK_LED1_CFG  "echo \"1\" > /sys/class/gpio_sw/PC22/cfg\n"
+#define BACK_LED2_CFG  "echo \"1\" > /sys/class/gpio_sw/PC21/cfg\n"
+
+#define BACK_LED1_ON  "echo \"1\" > /sys/class/gpio_sw/PC22/data\n"
+#define BACK_LED1_OFF "echo \"0\" > /sys/class/gpio_sw/PC22/data\n"
+
+#define BACK_LED2_ON  "echo \"1\" > /sys/class/gpio_sw/PC21/data\n"
+#define BACK_LED2_OFF "echo \"0\" > /sys/class/gpio_sw/PC21/data\n"
+
+
+#define CMD_RESTSRT         "restart"
+#define CMD_CLOSE           "close"
+#define CMD_LIGHT_ON        "light_on"
+#define CMD_LIGHT_OFF       "light_off"
+#define CMD_UPDATE_SET      "update_setting"
+#define CMD_UPDATE_PRO      "update_program"
+#define CMD_UPDATE_LINE     "update_lineinfo"
+#define CMD_UPDATE_FILE     "update_software"
+#define CMD_SCREENSHOT_ON   "screenshot_on"
+#define CMD_SCREENSHOT_OFF  "screenshot_off"
+#define CMD_LIGHT_LOW       "light_low"
+#define CMD_LIGHT_MED       "light_medium"
+#define CMD_LIGHT_HIG       "light_high"
+#define CMD_SCREE_ON        "screen_on"
+#define CMD_SCREE_OFF       "screen_off"
+#define CMD_TEST_ON         "test_on"
+#define CMD_TEST_OFF        "test_off"
+#define CMD_GET_PARA        "get_initparams"
+
 using namespace std;
 typedef struct tcp_syspam{
     QString ip;
@@ -46,6 +78,7 @@ typedef struct vehicle_information{
 class client : public QObject
 {
     Q_OBJECT
+
 public:
     explicit client(QObject *parent = 0);
     void ConfigFIleSet(QString NodeName, QString KeyName, QVariant vaule);
@@ -53,21 +86,38 @@ public:
     void DeleteAll_vehicle(void);
     void ReadAll_vehicle(void);
     vehicle_localtion ReadSingle_vehicle(void);
+    void clientHeartbeat();
+    void clientSignUp();
+    bool isConnected();
+    void socketConnect(bool is);
 private:
     void TCPsocket_Protocol(QByteArray DataBuf);
     void SendOK_Response(qint8 direction,qint16 name,qint16 serial);
     void AddVehicleLocationTolist(QString data);
+    void get_version();
+    QTimer *timer;
     QTcpSocket    *socket;
     QSettings     *TCP_set_file;
     QString       my_filename;
     client_syspam my_syspam;
     list<vehicle_localtion> vehicle_list;
     list<vehicle_localtion>::iterator vehicle_iterator;
+    uint16_t Serial;
+    QString Version;
+    volatile bool mSocketClientFlag;
+    volatile bool mHeartbeatFlag;
+    volatile bool mSignUpFlag;
+    volatile uint16_t mSocketClientTime;
+    volatile uint16_t mHeartbeatTime;
 signals:
     void veh_data_re();
+    void get_initpara();
+    void update_lineinfo();
+    void update_program();
 private slots:
     void ReadMsg(void);
     void ConnectSuccess(void);
+    void TimeOut();
 public slots:
     void ConnectToHost(QString ip,qint32 port,qint32 dev_id);
 };

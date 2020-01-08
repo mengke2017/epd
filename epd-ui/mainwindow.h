@@ -52,6 +52,7 @@ private :
     void createChildpage(QList<PageInfo> page_info);
     void switchPage(int Index);
     void showNextPage(int page);
+    void read_lineinfo();
 public slots:
     void update_status(QString,QString,QList<qint8>);
 private slots:

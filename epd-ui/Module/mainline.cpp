@@ -65,14 +65,12 @@ void MainLine::showall()
 {
     line_widget->show();
 }
-void MainLine::update_line(QString id="", QString info="", QString Begtime="", QString Endtime="", QString price="", QString count="")
+void MainLine::creat_line(QString id="", QString info="", QString Begtime="", QString Endtime="", QString price="")
 {
     if(!id.isEmpty())
         line_id->setText(id);
     if(!info.isEmpty())
         line_info->setText("开往"+info);
-    if(!count.isEmpty())
-        over_stat->setText(count);
     if((!Begtime.isEmpty()) && (!Endtime.isEmpty()))
         beg_end_time_value->setText(Begtime + " - " + Endtime);
     if(!price.isEmpty())
@@ -103,8 +101,8 @@ void MainLine::updatePrice_value(QString price)
     price_value->setText(price + "元");
     price_value->update();
 }
-void MainLine::update_status(LineStatus status)
+void MainLine::update_status(QString count)
 {
-    updateOver_stat(status.over_count);
+    updateOver_stat(count);
  //   update
 }

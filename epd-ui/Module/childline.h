@@ -34,6 +34,6 @@ public:
     void updateTime(QString);
     void line_list_clear();
     void che_ico_list_clear();
-    void update_status(LineStatus status);
+    void update_status(QList<qint8>);
 };
 #endif  // CHILDLINE_H

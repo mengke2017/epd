@@ -11,20 +11,7 @@
 #include<QByteArray>
 #include<QMutex>
 #include<QSocketNotifier>
-//#include <QSocketNotifier>
-//#include <linux/fs.h>
-//#include<fcntl.h>
-//#include<errno.h>
-//#include<termio.h>
-//#include<sys/ioctl.h>
-//#include<sys/stat.h>
-//#include<sys/types.h>
-//#include<stdlib.h>
-//#include<unistd.h>
-//#include <stdio.h>
-//#include<QTimer>
-//#include<QMutex>
-//#include<QWidget>
+
 #define TIME_OUT 10
 enum BaudRateType
 {
