@@ -37,7 +37,8 @@ SOURCES += \
     e-paper/IT8951_CMD.c \
     serial/serial.cpp \
     tcp/client.cpp \
-    fileutils.cpp
+    fileutils.cpp \
+    Module/bulletin.cpp
 
 HEADERS += \
         mainwindow.h \
@@ -52,7 +53,8 @@ HEADERS += \
     e-paper/IT8951_CMD.h \
     serial/serial.h \
     tcp/client.h \
-    fileutils.h
+    fileutils.h \
+    Module/bulletin.h
 
 FORMS += \
         mainwindow.ui

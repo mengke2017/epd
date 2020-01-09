@@ -34,6 +34,8 @@ private:
     TopWidget *top_widget;
 
     QFrame *sec_half;
+
+    Bulletin *bullentin;
     QList<MainLine*> mainpage_list;
 
     QFrame *bot;
@@ -44,6 +46,7 @@ private:
     uint16_t childpage_line_max;
     uint8_t main_tail;
     uint8_t child_tail;
+    bool bullein_flag;
 
 private :
     void createMainpage(QList<PageInfo> page_info);

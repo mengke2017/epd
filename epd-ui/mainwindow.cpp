@@ -37,12 +37,17 @@ MainWindow::MainWindow(QWidget *parent) :
 
     mainpage_line_max = 10;
     childpage_line_max = 6;
+    bullein_flag = false;
     top = new QFrame();
     top->setGeometry(0,0,1200,1600);
     top_widget = new TopWidget();
     top_widget->setParent(top);
     sec_half = new QFrame(top);
     sec_half->setGeometry(0,234,1200,1366);
+
+
+    bullentin = new Bulletin(sec_half);
+    bullentin->setGeometry(0, 1066, 1200, 300);
 
     bot = new QFrame();
     bot->setGeometry(0,0,1200,1600);
@@ -51,7 +56,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(timer, SIGNAL(timeout()), this, SLOT(slotTimerOut()));
     timer->start(1000);
     ui->centralWidget->hide();
-//    init_device();
+    init_device();
+
 //    read_lineinfo();
 }
 
@@ -63,11 +69,11 @@ MainWindow::~MainWindow()
 void MainWindow::slotTimerOut()
 {
 
-    QList<PageInfo> page_info;
+ //   QList<PageInfo> page_info;
 
     static int i = -1;
 
-    timer->stop();
+
     if(i == 1) {
     //    showNextPage(MAIN_PAGE);
         top->hide();
@@ -81,21 +87,20 @@ void MainWindow::slotTimerOut()
         bot->hide();
         top->show();
     //    top->repaint();
-        bot->show();
+        //bot->show();
         i = 1;
         qWarning("top");
     }
     if(i == -1){
-    //    createMainpage(page_info);
-    //    createChildpage(page_info);
+        timer->stop();
         read_lineinfo();
-        top->show();
+        bot->show();
         i = 1;
+        timer->start(10000);
         qWarning("init");
     } else {
-//        dis_epd(AUTO_MODE);
+        dis_epd(AUTO_MODE);
     }
-    timer->start(10000);
 }
 
 void MainWindow::createMainpage(QList<PageInfo> page_info)
@@ -117,6 +122,7 @@ void MainWindow::createMainpage(QList<PageInfo> page_info)
         } else {
             line->hide();
         }
+        bullentin->update_text("公告", "明天放假。");
         mainpage_list.append(line);
     }
     main_tail += 1;
@@ -159,17 +165,25 @@ void MainWindow::createChildpage(QList<PageInfo> page_info )
 void MainWindow::showNextPage(int page)
 {
     uint8_t i = 0;
+    static bool top_first = true, bot_first = true;
+    // 第一次进来 先显示 top
+
     if(page == MAIN_PAGE) {
-        if(line_total <= mainpage_line_max)
+        if(line_total <= mainpage_line_max) {
+            bot->hide();
+            top->show();
             return;
-        if(main_tail < line_total) {  // 两页显示不下时，继续创建
+        }
+        if(main_tail < line_total && main_tail > mainpage_line_max) {  // 两页显示不下时，继续创建
             for(i = main_tail; i < line_total && (i - main_tail) < mainpage_line_max; i++) {
                 mainpage_list.at(i-main_tail)->hide();
                 mainpage_list.at(i)->show();
-                if(i > 2*mainpage_line_max)
-                    mainpage_list.at(i)->creat_line("2","1","05:00","22:00","1");
             }
             main_tail = i;
+            // 显示top
+            bot->hide();
+            top->repaint();
+            top->show();
         } else if (main_tail == line_total) {  // 如果创建到最后一个了，回到开头
             for(uint8_t i = 0; i < mainpage_line_max; i++) {  // mainpage_line_max是大于mainpage_list.len的
                 mainpage_list.at(i)->show();
@@ -179,6 +193,10 @@ void MainWindow::showNextPage(int page)
             for(uint8_t i = mainpage_line_max; i < line_total; i++) {
                 mainpage_list.at(i)->hide();
             }
+            // 显示bot
+            top->repaint();
+            top->hide();
+            bot->show();
         }
     } else if(page == CHILD_PAGE) {
         if(line_total <= childpage_line_max)
@@ -187,8 +205,6 @@ void MainWindow::showNextPage(int page)
             for(i = child_tail; i < line_total && (i - child_tail) < childpage_line_max; i++) {
                 childpage_list.at(i-child_tail)->hide();
                 childpage_list.at(i)->show();
-               // if(i > 2*childpage_line_max)
-                //    childpage_list.at(i)->update_line("2","1","05:00","22:00","1","1");
             }
             child_tail = i;
         } else if (child_tail == line_total) {  // 如果创建到最后一个了，回到开头
@@ -283,7 +299,10 @@ void MainWindow::read_lineinfo()
             list = lineinfo.at(i).split("\"");
             if(list.size() < 3)
                 continue;
-            info.name_list.append(list.at(3).simplified());
+            QString s = list.at(3).simplified().replace("（", "︵ ").replace("）", " ︶");
+            s = s.replace("(", "︵ ");  //︵︶
+            s= s.replace(")", " ︶");
+            info.name_list.append(s);
             list.clear();
         }
       //  qDebug()<<"stat_id:"<<info.stat_id;

@@ -12,7 +12,8 @@ public:
     QWidget *stat_name_widget;
     QLabel *drop_label;
     QLabel *name_label;
-    void setText(QString);
+    QLabel *name_label2;
+    void SetText(QString);
     void setSelect();
 };
 

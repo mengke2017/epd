@@ -7,6 +7,7 @@
 #include <QTextEdit>
 #include <QDebug>
 #include <QList>
+#include "bulletin.h"
 
 enum weather_t {
     BAOXUE = 0, BAOYU, DABAOXUE, DABAOYU, DAXUE,
@@ -34,6 +35,7 @@ public:
     QLabel *lineId_name;
     QLabel *line_info_name;
     QLabel *over_stat_name;
+
 
     QList<QString> weath_list_ico;
     QList<QString> weath_list_text;

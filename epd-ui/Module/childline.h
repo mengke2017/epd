@@ -9,8 +9,8 @@
 #include "Module/stationname.h"
 #include "customize.h"
 
-#define FIRST_STATION  165
-#define LAST_STATION   1065
+#define FIRST_STATION  140
+#define LAST_STATION   1100
 #define VAILD_DIST     (LAST_STATION - FIRST_STATION)
 
 class ChildLine:public QFrame

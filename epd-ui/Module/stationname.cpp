@@ -2,39 +2,62 @@
 
 StationNmae::StationNmae(int16_t xpos,int16_t ypos)
 {
-    this->setGeometry(xpos,ypos,52,288);
+    this->setGeometry(xpos,ypos,40,288);
     stat_name_widget = new QWidget(this);
-    stat_name_widget->setGeometry(0,0,52,288);
+    stat_name_widget->setGeometry(0,0,40,288);
     stat_name_widget->setObjectName("stat_name_widget");
 
     drop_label = new QLabel(stat_name_widget);
     drop_label->setObjectName(QStringLiteral("drop_label"));
-    drop_label->setGeometry(QRect(14, 0, 25, 25));
+    drop_label->setGeometry(QRect(10, 2, 20, 20));
     drop_label->setStyleSheet(QLatin1String("#drop_label{border-image: url(:/new/prefix1/d.png);\n"
                                             "background-color: transparent;}"));
 
     name_label = new QLabel(stat_name_widget);
+    name_label2 = new QLabel(stat_name_widget);
     name_label->setObjectName("name_label");
-    name_label->setGeometry(0,25,52,253);
+    name_label2->setObjectName("name_label2");
+    name_label->setGeometry(0,25,40,253);
+    name_label2->setGeometry(20,25,20,253);
     name_label->setStyleSheet("background-color: transparent;");
+    name_label2->setStyleSheet("background-color: transparent;");
     QFont font;
-    font.setFamily(QString::fromUtf8("\346\226\207\346\263\211\351\251\277\345\276\256\347\261\263\351\273\221"));
+ //   font.setFamily(QString::fromUtf8("\346\226\207\346\263\211\351\251\277\345\276\256\347\261\263\351\273\221"));
+    font.setFamily(QStringLiteral("Monospace"));
     font.setPointSize(22);
     name_label->setFont(font);
+    name_label2->setFont(font);
+    name_label2->setAlignment(Qt::AlignHCenter|Qt::AlignTop);
     name_label->setAlignment(Qt::AlignHCenter|Qt::AlignTop);
     name_label->setWordWrap(true);
+    name_label2->setWordWrap(true);
 }
 
-void StationNmae::setText(QString text)
+void StationNmae::SetText(QString text)
 {
     QFont font;
+    QString text2;
     if(text.length() <= 7) {
         font.setPointSize(22);
-    } else if (text.length() > 7 && text.length() <= 14) {
-       font.setPointSize(19);
+        name_label2->hide();
+    } else if (text.length() > 7 && text.length() <= 9) {
+       font.setPointSize(16);
+       name_label->setGeometry(10,25,25,523);
+    } else if (text.length() > 9 && text.length() <= 11) {
+        font.setPointSize(15);
+        name_label->setGeometry(10,25,20,523);
     } else {
-        font.setPointSize(18);
-        text = text.mid(0,16);
+        if(text.length() > 20)
+            text = text.mid(0,20);
+        font.setPointSize(15);
+        text2 = text.mid(10);
+        if(text2 != " ︶") {
+            text = text.mid(0,10);
+            name_label->setGeometry(0,25,20,523);
+            name_label2->setFont(font);
+            name_label2->setGeometry(20,25,20,523);
+            name_label2->setText("<html><head/><body><p style='line-height:80%'>" + text2 + "</p></body></html>");
+        }
     }
     name_label->setFont(font);
 //    <html><head/><body><p style='line-height:80%'>浙江杭州图软科技杭州图软科技</p></body></html>

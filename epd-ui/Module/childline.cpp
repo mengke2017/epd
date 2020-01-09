@@ -1,6 +1,6 @@
 #include "Module/childline.h"
 
-#define FIRST_STATION_CHE  171
+//#define FIRST_STATION_CHE  171
 
 ChildLine::ChildLine(int16_t ypos)
 {
@@ -27,7 +27,7 @@ ChildLine::ChildLine(int16_t ypos)
 
     info = new QLabel(child_line_widget);
     info->setObjectName(QStringLiteral("info"));
-    info->setGeometry(QRect(20, 115, 130, 140));
+    info->setGeometry(QRect(20, 125, 130, 140));
     font.setPointSize(17);
     info->setFont(font);
     info->setAlignment(Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter);
@@ -52,20 +52,20 @@ void ChildLine::create_line(QString id, int8_t current_index, int8_t station_tot
 {
     StationNmae* stat_name;
     int16_t dist = 0;
-    if(station_total > 26)
-        station_total = 26;
+    if(station_total > 25)
+        station_total = 25;   // 最多25个站点
     if(station_total > 1) {
         dist = VAILD_DIST/(station_total-1);
     }
     if(!stat_name_list.isEmpty()) {
         line_list_clear();
-        for(int8_t i = 0;i < station_total || i < 16;i++)   // 最多16个站点
+        for(int8_t i = 0;i < station_total;i++)
         {
             stat_name = new StationNmae(FIRST_STATION + (i*dist), 25);
             line_list.append(stat_name);
             line_list.at(i)->setParent(child_line_widget);
             if(stat_name_list.length() > i) {
-                line_list.at(i)->setText(stat_name_list.at(i));
+                line_list.at(i)->SetText(stat_name_list.at(i));
             }
             if(i+1 == current_index)
             {
