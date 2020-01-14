@@ -46,8 +46,7 @@ MainWindow::MainWindow(QWidget *parent) :
     sec_half->setGeometry(0,234,1200,1366);
 
 
-    bullentin = new Bulletin(sec_half);
-    bullentin->setGeometry(0, 1066, 1200, 300);
+    bullentin = new Bulletin(sec_half, 1216);
 
     bot = new QFrame();
     bot->setGeometry(0,0,1200,1600);
@@ -57,8 +56,6 @@ MainWindow::MainWindow(QWidget *parent) :
     timer->start(1000);
     ui->centralWidget->hide();
     init_device();
-
-//    read_lineinfo();
 }
 
 MainWindow::~MainWindow()
@@ -68,36 +65,28 @@ MainWindow::~MainWindow()
 
 void MainWindow::slotTimerOut()
 {
-
- //   QList<PageInfo> page_info;
-
     static int i = -1;
-
 
     if(i == 1) {
     //    showNextPage(MAIN_PAGE);
-        top->hide();
-        bot->show();
-    //    top->repaint();
-    //    top->show();
-        i = 0;
-        qWarning("bot");
-    }  else if(i == 0){
-    //    showNextPage(MAIN_PAGE);
         bot->hide();
         top->show();
-    //    top->repaint();
-        //bot->show();
+        i = 0;
+  //      qWarning("bot");
+    }  else if(i == 0){
+    //    showNextPage(MAIN_PAGE);
+        top->hide();
+        bot->show();
         i = 1;
-        qWarning("top");
+   //     qWarning("top");
     }
     if(i == -1){
         timer->stop();
         read_lineinfo();
-        bot->show();
+        top->show();
         i = 1;
         timer->start(10000);
-        qWarning("init");
+   //     qWarning("init");
     } else {
         dis_epd(AUTO_MODE);
     }
@@ -109,22 +98,48 @@ void MainWindow::createMainpage(QList<PageInfo> page_info)
     uint16_t ypos = 0, max_y = 0;
 
     max_y = (mainpage_line_max)*MAIN_LINE_DIST;
-    for (int16_t i = 0; i < line_total; i++) {
+    for (int16_t i = 0; i < page_info.length(); i++) {
         ypos = (i*MAIN_LINE_DIST)%max_y;
         line = new MainLine(MAIN_LINE_FIRST + ypos);
         line->creat_line(page_info.at(i).stat_id, page_info.at(i).endstat_name,
-                          page_info.at(i).Begtime, page_info.at(i).Endtime,
+                          page_info.at(i).timeSum, page_info.at(i).timeWin,
                           page_info.at(i).price);
         line->setParent(sec_half);
         if(i < mainpage_line_max) {
-           // line->creat_line("0", "杭州", "05:00", "22:00", "2");
             main_tail = i;
         } else {
             line->hide();
         }
-        bullentin->update_text("公告", "明天放假。");
-        mainpage_list.append(line);
+        bullentin->update_text("公告", "2019年文昌市省管领导班子和领导干部年度考核工作大会在市委党校召开，省委第四考核组组长、省工业和信息化厅一级巡视员廖强作考核动员讲话，市委书记钟鸣明，市委副书记、市长王晓桥分别作市委、市政府领导班子工作总");
     }
+//    line = new MainLine(MAIN_LINE_FIRST + 131*2);
+//    line->creat_line("0", "杭州", "05:00", "22:00", "2");
+//    line->setParent(sec_half);
+//    mainpage_list.append(line);
+//    line = new MainLine(MAIN_LINE_FIRST + 131*3);
+//    line->creat_line("0", "杭州", "05:00", "22:00", "2");
+//    line->setParent(sec_half);
+//    mainpage_list.append(line);
+//    line = new MainLine(MAIN_LINE_FIRST + 131*4);
+//    line->creat_line("0", "杭州", "05:00", "22:00", "2");
+//    line->setParent(sec_half);
+//    mainpage_list.append(line);
+//    line = new MainLine(MAIN_LINE_FIRST + 131*5);
+//    line->creat_line("0", "杭州", "05:00", "22:00", "2");
+//    line->setParent(sec_half);
+//    mainpage_list.append(line);
+//    line = new MainLine(MAIN_LINE_FIRST + 131*6);
+//    line->creat_line("0", "杭州", "05:00", "22:00", "2");
+//    line->setParent(sec_half);
+//    mainpage_list.append(line);
+//    line = new MainLine(MAIN_LINE_FIRST + 131*7);
+//    line->creat_line("0", "杭州", "05:00", "22:00", "2");
+//    line->setParent(sec_half);
+//    mainpage_list.append(line);
+//    line = new MainLine(MAIN_LINE_FIRST + 131*8);
+//    line->creat_line("0", "杭州", "05:00", "22:00", "2");
+//    line->setParent(sec_half);
+//    mainpage_list.append(line);
     main_tail += 1;
 }
 void MainWindow::createChildpage(QList<PageInfo> page_info )
@@ -137,7 +152,7 @@ void MainWindow::createChildpage(QList<PageInfo> page_info )
          << "杭州图软科技"<<"西湖站"<<"西湖武林小广场"<<"杭州图软科技"<<"西湖站"<<"武林小广场"
          <<"杭州图软科技"<<"西湖站"<<"武林小广场"<<"杭州图软科技";*/
     max_y = (childpage_line_max)*320;
-    for(int16_t i = 0; i < line_total; i++) {
+    for(int16_t i = 0; i < page_info.length(); i++) {
         ypos = (i*320)%max_y;
         line = new ChildLine(15+ypos);
 
@@ -222,7 +237,7 @@ void MainWindow::showNextPage(int page)
 
 void MainWindow::update_status(QString stat_id,QString count,QList<qint8> pos)
 {
-    qDebug()<<"111111";
+    qDebug()<<"update_status";
     for(uint16_t j = 0; j < line_total ;j++) {
         if (stat_id.compare(childpage_list.at(j)->line_id->text())) {
             childpage_list.at(j)->update_status(pos);
@@ -241,7 +256,6 @@ void MainWindow::read_lineinfo()
     QList<PageInfo> page_info;
     PageInfo info;
     QStringList lineinfo;
-    qint16 count = 0;
     if (!file.open(QIODevice::ReadOnly))
     {
         return;
@@ -317,9 +331,9 @@ void MainWindow::read_lineinfo()
         info.endstat_name = info.name_list.at(info.station_total-1);
         page_info.append(info);
         info.name_list.clear();
-        count++;
     }
-    line_total = count;
+    line_total = page_info.length();
+//    line_total = 9;
 
     createChildpage(page_info);
     createMainpage(page_info);

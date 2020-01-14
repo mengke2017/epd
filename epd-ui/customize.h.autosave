@@ -39,4 +39,11 @@ typedef struct {
     QString value;
 } Msg;
 
+enum weather_t {
+    BAOXUE = 0, BAOYU, DABAOXUE, DABAOYU, DAXUE,
+    DAYU, DUOYUN, LEIZHENYU, MAI, QING, SHACHENBAO,
+    TAIFENG, TEDABAOYU, WU, XIAOXUE,XIAOYU,YIN,
+    YUJIAXUE, ZHENYU, ZHONGXUE, ZHONGYU
+};
+
 #endif // CUSTOMIZE_H

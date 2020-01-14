@@ -1,4 +1,5 @@
 #include "mainline.h"
+#include <QDateTime>
 
 MainLine::MainLine(int32_t ypos = 0)
 {
@@ -65,14 +66,20 @@ void MainLine::showall()
 {
     line_widget->show();
 }
-void MainLine::creat_line(QString id="", QString info="", QString Begtime="", QString Endtime="", QString price="")
+void MainLine::creat_line(QString id="", QString info="", QString timeSum="", QString timeWin="", QString price="")
 {
+    QString  time = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm ddd");
     if(!id.isEmpty())
         line_id->setText(id);
     if(!info.isEmpty())
         line_info->setText("开往"+info);
-    if((!Begtime.isEmpty()) && (!Endtime.isEmpty()))
-        beg_end_time_value->setText(Begtime.remove(5,1));
+    if((!timeSum.isEmpty()) && (!timeWin.isEmpty())) {
+        if(time.mid(5,2).toInt() >= 5 && time.mid(5,2).toInt() < 10) {
+            beg_end_time_value->setText(timeSum.remove(5,1));
+        } else {
+            beg_end_time_value->setText(timeWin.remove(5,1));
+        }
+    }
     if(!price.isEmpty())
         price_value->setText(price + "元");
 }

@@ -1,10 +1,11 @@
 #include "client.h"
 #include <QDebug>
 #include <time.h>
+#include <QDateTime>
 #include <QString>
 #include <QTextCodec>
 
-#define CONFIG_FILE  "/SocketSyspam.ini"
+#define CONFIG_FILE  "./SocketSyspam.ini"
 
 client::client(QObject *parent) :
     QObject(parent)
@@ -25,12 +26,13 @@ client::client(QObject *parent) :
 void client::ReadMsg(void)
 {
     QByteArray msg = socket->readAll();
+//    qWarning()<<"msg: "<<msg;
     TCPsocket_Protocol(msg);
 }
 
 void client::ConnectSuccess(void)
 {
-    qDebug()<<"connect success!";
+    qWarning()<<"connect success!";
     ConfigFIleSet("client_syspam","ip",my_syspam.ip);
     ConfigFIleSet("client_syspam","port",my_syspam.port);
     ConfigFIleSet("client_syspam","device_id",my_syspam.device_id);
@@ -38,16 +40,13 @@ void client::ConnectSuccess(void)
 
 void client::ConnectToHost(QString ip,qint32 port,qint32 dev_id)
 {
-//    if(FileUtils::exists(DIAL_FLAG_FILE)) {
-//        isDial = true;
     my_syspam.ip = ip;
     my_syspam.port = port;
     my_syspam.device_id = dev_id;
     socket->abort();
     socket->connectToHost(my_syspam.ip,my_syspam.port);
-//    }
     connect(timer, SIGNAL(timeout()), this, SLOT(TimeOut())); //将定时器与TimeOut函数绑定
-    timer->start(1000);//一秒计时一次
+    timer->start(5000);//一秒计时一次
 }
 
 void client::TCPsocket_Protocol(QByteArray DataBuf)
@@ -56,32 +55,36 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
     if(!DataBuf.isEmpty()){
         QString data = QString(DataBuf);
         QStringList data_list = data.split(",");
-        if(data_list.size() >= 7){  // 一条协议里至少有7种内容
-
+        if(data_list.size() >= 7) {  // 一条协议里至少有7种内容
              procotol_struct.FRAME_HEADER = data_list.at(0);  // head
              procotol_struct.direction = data_list.at(1).toInt();  // 方向
              procotol_struct.command_name  = data_list.at(2).toInt();  // 指令名称
              procotol_struct.command_serial = data_list.at(3).toInt();  // 指令序号
              procotol_struct.data_length = data_list.at(4).toInt();  // 数据长度
              procotol_struct.FRAME_END = data_list.at(data_list.size() - 1);  // 帧尾
+             data = data_list.at(5).mid(5,procotol_struct.data_length);
         }
         if(procotol_struct.FRAME_HEADER == HEADER &&
                 procotol_struct.FRAME_END == END) {  // 帧头和帧尾符合协议
+
             if(procotol_struct.direction == SERVICE2CLIENT) {   //  服务器主动调用和下发
-                switch(procotol_struct.command_name){
+                qWarning()<<"rcv:"<<data;
+                switch(procotol_struct.command_name) {
                     case 33:  // 下发时钟数据
                         {
-                              QString date = "date -s '";
-                              char str[100];
+
+                    qWarning("cmd 33!");
                               time_t sec = data_list.at(5).toInt();//seconds form 1970/1/1/
-                              struct tm *localTime;
-                              localTime = localtime(&sec);
-                              if(localTime != NULL){//有效时间
-                                  strftime(str,100,"%c",localTime);
-                                  QString date_time = QString(QLatin1String(str));
-                                  date_time.insert(3,",");//保证格式正确
-                                  date_time = date.append(date_time);
-                                  date_time.append("'");
+                              QString date = "date -s \"";
+                              QDateTime dt = QDateTime::fromTime_t(sec);
+                              QString strDate = dt.toString(Qt::ISODate);//日期格式自定义
+
+                              if(strDate != NULL) {//有效时间
+                                  QString date_time;
+                                  qWarning()<<strDate;
+                                  date_time = date.append(strDate.replace("T"," "));
+                                  date_time.append("\"");
+                                  qWarning()<<date_time;
                                   char*  dates;
                                   QByteArray ba = date_time.toLatin1(); // must
                                   dates=ba.data();
@@ -92,22 +95,30 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
                               }
                         }
                         break;
-                    case 34://LED屏开关命令 背光灯
-
+                    case 34://LED屏开关命令
+                    qWarning("cmd 34!");
+                    SendOK_Response(ANSWER_SERVICE2CLIENT,procotol_struct.command_name,procotol_struct.command_serial);
                         break;
+                    case 12://到站信息
+                    qWarning("cmd 12!");
+                    SendOK_Response(ANSWER_SERVICE2CLIENT,procotol_struct.command_name,procotol_struct.command_serial);
+                    break;
                     case 39://服务器下发公告信息
+                    qWarning("cmd 39!");
 
                         break;
                     case 61://紧急消息
+                    qWarning("cmd 61!");
 
                         break;
                     case 13://车辆分布位置
                         {
+                    qWarning("cmd 13!");
                             QStringList Data_buf;
-                            qDebug()<<"444";
+                            //qDebug()<<"444";
                             Data_buf = data_list.at(5).split(SINGAL_VEHICLE_END);  // 通过</line>分解字符串
                             if(Data_buf.at(Data_buf.size() - 1).contains(VEHICLE_LOCATION_FLAG,Qt::CaseSensitive)){  // 帧结构符合协议
-                                for(int i = 0;i < Data_buf.size() - 1;i++){  // 去掉车辆信息中的<lines>结尾
+                                for(int i = 0; i < Data_buf.size()-1; i++){  // 去掉车辆信息中的<lines>结尾
                                     AddVehicleLocationTolist(Data_buf.at(i));
                                 }
                                 emit veh_data_re();
@@ -115,67 +126,126 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
                         }
                         break;
                     case 41://批量通知
-
+                    qWarning("cmd 41");
+                    /*<?xml version="1.0" encoding="gb2312"?>
+                        <root>
+                            <msgs date="">
+                                <!--单条消息
+                                type：1显示器滚动区，2，媒体播放区，3，LED屏
+                                bgdate：开始日期
+                                enddate：结束日期
+                                bgtime：开始时间
+                                endtime：结束时间
+                                value：消息内容
+                                -->
+                                <msg type="3" bgdate="" enddate="" bgtime="" endtime=""  value =""></msg>
+                            </msgs>
+                        </root>*/
+                        {
+                            QStringList Data_buf;
+                            QStringList msg_buf;
+                            Msg msg;
+                            int16_t star_index = 0, end_index = 0;
+                            star_index = data.indexOf("<msg");
+                            if(star_index < 0)
+                                break;
+                            end_index = data.indexOf("</msg>",star_index);
+                            if(end_index < 0)  // 格式不正确
+                                break;
+                            data = data.mid(star_index, end_index-star_index);
+                            Data_buf = data.split("</msg>");  // 通过</msg>分解字符串
+                            for(uint16_t i = 0; i < Data_buf.length(); i++) {
+                                msg_buf = Data_buf.at(i).split("\"");
+                                if(msg_buf.length() < 11)
+                                    break;
+                                msg.type = msg_buf.at(1);
+                                msg.bgdate = msg_buf.at(3);
+                                msg.enddate = msg_buf.at(5);
+                                msg.bgtime = msg_buf.at(7);
+                                msg.endtime = msg_buf.at(9);
+                                msg.value = msg_buf.at(11);
+                                qWarning()<<"msg.value: "<<msg.value;
+                                msg_list.append(msg);
+                            }
+                        }
                         break;
                     case 8://下发命令
+                    qWarning("cmd 8");
                         QString cmd;
                         cmd = data_list.at(5).mid(0,procotol_struct.data_length);
                         if(!cmd.compare(CMD_RESTSRT)) {  // 重启
-                            system("reboot");
+                            qWarning("reboot");
+                            //system("reboot");
                         } else if(!cmd.compare(CMD_CLOSE)) {  // 关机
-                            system("poweroff");
+                            qWarning("poweroff");
+                            //system("poweroff");
                         } else if(!cmd.compare(CMD_LIGHT_ON)) {  // 开灯
-
+                            qWarning("CMD_LIGHT_ON");
                         } else if(!cmd.compare(CMD_LIGHT_OFF)) {  // 关灯
-
+                            qWarning("CMD_LIGHT_OFF");
                         } else if(!cmd.compare(CMD_UPDATE_SET)) {  // 更新设置
-
+                            qWarning("CMD_UPDATE_SET");
                         } else if(!cmd.compare(CMD_UPDATE_PRO)) {  // 更新节目
+                            qWarning("CMD_UPDATE_PRO");
                             emit update_program();
                         } else if(!cmd.compare(CMD_UPDATE_LINE)) {  // 更新线路
+                            qWarning("CMD_UPDATE_LINE");
                             emit update_lineinfo();
                         } else if(!cmd.compare(CMD_UPDATE_FILE)) {  // 软件升级
+                            qWarning("CMD_UPDATE_FILE");
 
                         } else if(!cmd.compare(CMD_SCREENSHOT_ON)) {  // 截屏开
+                            qWarning("CMD_SCREENSHOT_ON");
 
                         } else if(!cmd.compare(CMD_SCREENSHOT_OFF)) {  // 截屏关
+                            qWarning("CMD_SCREENSHOT_OFF");
 
                         } else if(!cmd.compare(CMD_LIGHT_LOW)) {  // 背光 低
+                            qWarning("CMD_LIGHT_LOW");
                             system(BACK_LED1_OFF);
                             system(BACK_LED2_OFF);
                         } else if(!cmd.compare(CMD_LIGHT_MED)) {  // 背光 中
+                            qWarning("CMD_LIGHT_MED");
                             system(BACK_LED1_ON);
                             system(BACK_LED2_OFF);
                         } else if(!cmd.compare(CMD_LIGHT_HIG)) {  // 背光 高
+                            qWarning("CMD_LIGHT_HIG");
                             system(BACK_LED1_ON);
                             system(BACK_LED2_ON);
                         } else if(!cmd.compare(CMD_SCREE_ON)) {  // 屏幕 开
+                            qWarning("CMD_SCREE_ON");
 
                         } else if(!cmd.compare(CMD_SCREE_OFF)) {  // 屏幕 关
+                            qWarning("CMD_SCREE_OFF");
 
                         } else if(!cmd.compare(CMD_TEST_ON)) {  // 测试模式开
+                            qWarning("CMD_TEST_ON");
 
                         } else if(!cmd.compare(CMD_TEST_OFF)) {  // 测试模式关
+                            qWarning("CMD_TEST_OFF");
 
                         } else if(!cmd.compare(CMD_GET_PARA)) {  // 获取初始化参数
+                            qWarning("CMD_GET_PARA");
                             emit get_initpara();
                         }
                         break;
-
                 }
             } else if(procotol_struct.direction == ANSWER_CLIENT2SERVICE) {  // 服务器应答
                 switch(procotol_struct.command_name) {
+           //     msg:  "$GPRS,1,1,1,2,OK,$END$"
                 case -1:
+                    qWarning(DataBuf);
                     if(procotol_struct.command_serial == Serial) {
-                        if(data_list.at(5) == 'O' && data_list.at(6) == 'K') {
+                        if(data.compare("OK")) {
                             mHeartbeatFlag = true;
                             qWarning()<<"Heartbeat OK.";
                         }
                     }
                     break;
                 case 1:
+                    qWarning(DataBuf);
                     if(procotol_struct.command_serial == Serial) {
-                        if(data_list.at(5) == 'O' && data_list.at(6) == 'K') {
+                        if(data.compare("OK")) {
                             mSignUpFlag = true;
                             qWarning()<<"SignUp OK.";
                         }
@@ -285,8 +355,8 @@ void client::clientHeartbeat() // 终端心跳
     qWarning("clientHeartbeat");
     send_data.append(HEADER);
     send_data.append(",0,-1,");
-    send_data.append(QString::number(Serial));
     Serial++;
+    send_data.append(QString::number(Serial));
     send_data.append(",");
     pack.append("<?xml version=\"1.0\" encoding=\"utf-8\"?><root>");
     pack.append("<stationId>"+ QString::number(my_syspam.device_id) +"</stationId>");
@@ -297,30 +367,34 @@ void client::clientHeartbeat() // 终端心跳
     pack.append("<heater></heater><dvr></dvr><camera></camera>< router4g></ router4g></root>");
     send_data.append(QString::number(pack.length()));   // 长度
     send_data.append(",");
+    send_data.append(pack);
+    send_data.append(",");
     send_data.append(END);
     socket->write(send_data.toLatin1());
-    qWarning()<<send_data;
+    qWarning()<<"send:"<<send_data;
 }
 
 void client::clientSignUp()
 {
-    //$GPRS,0,-1,?,n,123456;v1.0.0,$END$
+    //$GPRS,0,1,?,n,123456;v1.0.0,$END$
     qWarning("clientSignUp");
     QString send_data;
     QString pack;
     send_data.append(HEADER);
-    send_data.append(",0,-1,");
-    send_data.append(QString::number(Serial));
+    send_data.append(",0,1,");  //  方向+命令
     Serial++;
+    send_data.append(QString::number(Serial));  //
     send_data.append(",");
     pack.append(QString::number(my_syspam.device_id));
     pack.append(";");
     pack.append(Version);
     send_data.append(QString::number(pack.length()));   // 长度
     send_data.append(",");
+    send_data.append(pack);
+    send_data.append(",");
     send_data.append(END);
     socket->write(send_data.toLatin1());
-    qWarning()<<send_data;
+    qWarning()<<"send:"<<send_data;
 }
 
 void client::get_version()
@@ -369,20 +443,21 @@ void client::TimeOut()
                     if(count > 4) {  // 未应答重传次数
                         count = 0;
                         socket->abort();
-                        mSocketClientTime = 60;  // 断开链接1分钟后重连
+                        mSignUpFlag = false;
+                        mSocketClientTime = 12;  // 断开链接1分钟后重连
                     }
                 } else {
                     count = 0;
                 }
                 clientHeartbeat();
-                mHeartbeatTime = 60;   // 1分钟
+                mHeartbeatTime = 2;   // 1分钟
             }
         }
     } else {
         if(mSocketClientTime > 0) {
             mSocketClientTime -=1;
         } else {
-            mSocketClientTime = 60;  //  如果没有连接到服务器则每60秒重连一次
+            mSocketClientTime = 12;  //  如果没有连接到服务器则每60秒重连一次
             socket->abort();
             socket->connectToHost(my_syspam.ip,my_syspam.port);
         }
@@ -403,9 +478,20 @@ bool client::isConnected()
     if(socket == NULL || (socket != NULL &&
             socket->state() != QTcpSocket::ConnectedState)) {
         //socketConnect(false);
+        qWarning("disconnect!");
         return false;
     } else {
        // socketConnect(true);
         return true;
     }
+}
+
+void client::getWeather()
+{
+    /*
+    <?xml version="1.0" encoding="UTF-8"?>
+    <root><adcode value="00" /><weather value="晴" />
+    <winddirection value="风向北" /><windpower value="风力≤3级" /><temperature value="19" />
+    <humidity value="42" /></root>
+    */
 }

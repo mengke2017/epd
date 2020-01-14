@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <QTimer>
 #include "fileutils.h"
+#include "customize.h"
 //#include <iostream>
 #define HEADER                  "$GPRS"
 #define END                     "$END$"
@@ -90,11 +91,14 @@ public:
     void clientSignUp();
     bool isConnected();
     void socketConnect(bool is);
+
+    QList<Msg> msg_list;
 private:
     void TCPsocket_Protocol(QByteArray DataBuf);
     void SendOK_Response(qint8 direction,qint16 name,qint16 serial);
     void AddVehicleLocationTolist(QString data);
     void get_version();
+    void getWeather();
     QTimer *timer;
     QTcpSocket    *socket;
     QSettings     *TCP_set_file;

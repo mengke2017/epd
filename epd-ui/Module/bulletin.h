@@ -12,7 +12,7 @@ class Bulletin:public QFrame
     Q_OBJECT
 
 public:
-    explicit Bulletin(QFrame* parent = Q_NULLPTR);
+    explicit Bulletin(QFrame* parent = Q_NULLPTR, uint16_t ypos = 0);
 
     QWidget *bulletin_widget;
     QLabel *title_label;
