@@ -6,6 +6,7 @@
 
 QT       += core gui network xml
 
+LIBS     += -L/usr/lib -lbz2
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -38,7 +39,9 @@ SOURCES += \
     serial/serial.cpp \
     tcp/client.cpp \
     fileutils.cpp \
-    Module/bulletin.cpp
+    Module/bulletin.cpp \
+    tcp/http.cpp \
+    systemutils.cpp
 
 HEADERS += \
         mainwindow.h \
@@ -54,7 +57,11 @@ HEADERS += \
     serial/serial.h \
     tcp/client.h \
     fileutils.h \
-    Module/bulletin.h
+    Module/bulletin.h \
+    bzlib.h \
+    tcp/StationCommand.h \
+    tcp/http.h \
+    systemutils.h
 
 FORMS += \
         mainwindow.ui

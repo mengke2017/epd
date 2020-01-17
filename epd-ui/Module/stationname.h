@@ -9,7 +9,9 @@ class StationNmae:public QFrame
 
 public:
     StationNmae(int16_t xpos, int16_t ypos);
+    ~StationNmae();
     QWidget *stat_name_widget;
+    QWidget *name_widget;
     QLabel *drop_label;
     QLabel *name_label;
     QLabel *name_label2;

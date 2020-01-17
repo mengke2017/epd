@@ -19,6 +19,7 @@ class ChildLine:public QFrame
 
 public:
     ChildLine(int16_t ypos);
+    ~ChildLine();
 
     QWidget *child_line_widget;
     QLabel *line_id;
@@ -32,8 +33,9 @@ public:
     void update_info(QString timeS, QString timeE, QString price);
     void create_cheico(QList<qint8> che_index);
     void updateTime(QString);
+    void update_status(QList<qint8>);
+protected:
     void line_list_clear();
     void che_ico_list_clear();
-    void update_status(QList<qint8>);
 };
 #endif  // CHILDLINE_H

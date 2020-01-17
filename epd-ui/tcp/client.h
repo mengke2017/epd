@@ -19,7 +19,7 @@
 #define SERVICE2CLIENT          2         //服务器调取（或者下发）终端的数据
 #define ANSWER_SERVICE2CLIENT   3         //终端对服务器调取数据的应答
 #define VEHICLE_AMOUNT          50        //一条线路的上车辆最大数量
-#define VEHICLE_LOCATION_FLAG   "<lines>" //
+#define VEHICLE_LOCATION_FLAG   "</lines>" //
 #define SINGAL_VEHICLE_END      "</line>" //单独一条线路的结尾
 #define SPLIT_CHAR              "vehicle "
 
@@ -82,6 +82,7 @@ class client : public QObject
 
 public:
     explicit client(QObject *parent = 0);
+    static client* getInstance();
     void ConfigFIleSet(QString NodeName, QString KeyName, QVariant vaule);
     QVariant ConfigFIleGet(QString NodeName,QString KeyName);
     void DeleteAll_vehicle(void);
@@ -93,17 +94,17 @@ public:
     void socketConnect(bool is);
 
     QList<Msg> msg_list;
+    client_syspam my_syspam;
 private:
     void TCPsocket_Protocol(QByteArray DataBuf);
     void SendOK_Response(qint8 direction,qint16 name,qint16 serial);
     void AddVehicleLocationTolist(QString data);
-    void get_version();
-    void getWeather();
+    void get_version();    
+  //  void command_handle(QString com);
     QTimer *timer;
     QTcpSocket    *socket;
     QSettings     *TCP_set_file;
     QString       my_filename;
-    client_syspam my_syspam;
     list<vehicle_localtion> vehicle_list;
     list<vehicle_localtion>::iterator vehicle_iterator;
     uint16_t Serial;
@@ -116,8 +117,7 @@ private:
 signals:
     void veh_data_re();
     void get_initpara();
-    void update_lineinfo();
-    void update_program();
+    void http_command(int);
 private slots:
     void ReadMsg(void);
     void ConnectSuccess(void);

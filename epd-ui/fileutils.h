@@ -35,6 +35,8 @@ public:
     static int32_t fileCount(const QString& filePath);
     static QStringList getFileList(const QString& dir);
     static void log(QString fileName, QString message);
+    static void StringToXML(QFile *, QByteArray);
+    static QString ReadAllXmlNode(QFile *, int command);
 private:
     static void delDir(QFileInfo fileList);
     static void fileCounter(const QString& filePath, int32_t* pCounter);

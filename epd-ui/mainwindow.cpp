@@ -8,8 +8,8 @@
 #include <QDebug>
 #include <QDomDocument>
 
-#define MAX_LINE_COUNT_MAIN   10
-#define MAX_LINE_COUNT_CHILD  5
+#define MAX_LINE_COUNT_MAIN   9
+#define MAX_LINE_COUNT_CHILD  6
 
 #define MAX_WIN_WIDTH         1200
 #define MAX_WIN_HIGTH         1600
@@ -33,10 +33,13 @@ MainWindow::MainWindow(QWidget *parent) :
 //    service->start();
 //    connect(thread,SIGNAL(started()),service,SLOT(start()),Qt::QueuedConnection);
     connect(service,SIGNAL(update_status(QString,QString,QList<qint8>))
-            ,this,SLOT(update_status(QString,QString,QList<qint8>)));
+            ,this,SLOT(update_status_slot(QString,QString,QList<qint8>)));
+    connect(service,SIGNAL(read_weather()),this,SLOT(read_weather_xml()));
+    connect(service,SIGNAL(read_line()),this,SLOT(read_lineinfo_xml()));
+    connect(service,SIGNAL(read_initpara()),this,SLOT(read_initpara_xml()));
 
-    mainpage_line_max = 10;
-    childpage_line_max = 6;
+    mainpage_line_max = MAX_LINE_COUNT_MAIN;
+    childpage_line_max = MAX_LINE_COUNT_CHILD;
     bullein_flag = false;
     top = new QFrame();
     top->setGeometry(0,0,1200,1600);
@@ -61,6 +64,8 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow()
 {
     delete ui;
+    freePage(MAIN_PAGE);
+    freePage(CHILD_PAGE);
 }
 
 void MainWindow::slotTimerOut()
@@ -82,7 +87,8 @@ void MainWindow::slotTimerOut()
     }
     if(i == -1){
         timer->stop();
-        read_lineinfo();
+        read_initpara_xml();
+        read_lineinfo_xml();
         top->show();
         i = 1;
         timer->start(10000);
@@ -98,6 +104,7 @@ void MainWindow::createMainpage(QList<PageInfo> page_info)
     uint16_t ypos = 0, max_y = 0;
 
     max_y = (mainpage_line_max)*MAIN_LINE_DIST;
+//    freePage(MAIN_PAGE);
     for (int16_t i = 0; i < page_info.length(); i++) {
         ypos = (i*MAIN_LINE_DIST)%max_y;
         line = new MainLine(MAIN_LINE_FIRST + ypos);
@@ -110,8 +117,10 @@ void MainWindow::createMainpage(QList<PageInfo> page_info)
         } else {
             line->hide();
         }
-        bullentin->update_text("公告", "2019年文昌市省管领导班子和领导干部年度考核工作大会在市委党校召开，省委第四考核组组长、省工业和信息化厅一级巡视员廖强作考核动员讲话，市委书记钟鸣明，市委副书记、市长王晓桥分别作市委、市政府领导班子工作总");
+        mainpage_list.append(line);
     }
+    main_tail += 1;
+    bullentin ->update_text("公告", "2019年文昌市省管领导班子和领导干部年度考核工作大会在市委党校召开，省委第四考核组组长、省工业和信息化厅一级巡视员廖强作考核动员讲话，市委书记钟鸣明，市委副书记、市长王晓桥分别作市委、市政府领导班子工作总");
 //    line = new MainLine(MAIN_LINE_FIRST + 131*2);
 //    line->creat_line("0", "杭州", "05:00", "22:00", "2");
 //    line->setParent(sec_half);
@@ -140,9 +149,8 @@ void MainWindow::createMainpage(QList<PageInfo> page_info)
 //    line->creat_line("0", "杭州", "05:00", "22:00", "2");
 //    line->setParent(sec_half);
 //    mainpage_list.append(line);
-    main_tail += 1;
 }
-void MainWindow::createChildpage(QList<PageInfo> page_info )
+void MainWindow::createChildpage(QList<PageInfo> page_info)
 {
     ChildLine *line;
     uint16_t ypos = 0, max_y = 0;/*
@@ -152,6 +160,7 @@ void MainWindow::createChildpage(QList<PageInfo> page_info )
          << "杭州图软科技"<<"西湖站"<<"西湖武林小广场"<<"杭州图软科技"<<"西湖站"<<"武林小广场"
          <<"杭州图软科技"<<"西湖站"<<"武林小广场"<<"杭州图软科技";*/
     max_y = (childpage_line_max)*320;
+//    freePage(CHILD_PAGE);
     for(int16_t i = 0; i < page_info.length(); i++) {
         ypos = (i*320)%max_y;
         line = new ChildLine(15+ypos);
@@ -235,34 +244,53 @@ void MainWindow::showNextPage(int page)
     }
 }
 
-void MainWindow::update_status(QString stat_id,QString count,QList<qint8> pos)
+void MainWindow::update_status_slot(QString stat_id,QString count,QList<qint8> pos)
 {
     qDebug()<<"update_status";
+    //qWarning()<<stat_id<<" "<<count<<" "<<pos;
     for(uint16_t j = 0; j < line_total ;j++) {
-        if (stat_id.compare(childpage_list.at(j)->line_id->text())) {
+        qWarning()<<"111";
+        if (!stat_id.compare(childpage_list.at(j)->line_id->text())) {
             childpage_list.at(j)->update_status(pos);
             mainpage_list.at(j)->update_status(count);
+        }
+        qWarning()<<stat_id<<" "<<"1路北"<<" "<<"2路北";
+        if (stat_id == "1路北") {
+            qWarning()<<"222";
+            childpage_list.at(0)->update_status(pos);
+            mainpage_list.at(0)->update_status(count);
+        }
+        QString s = "2路北";
+        if (!stat_id.compare(s)) {
+            qWarning()<<"333";
+            childpage_list.at(1)->update_status(pos);
+            mainpage_list.at(1)->update_status(count);
         }
     }
 }
 
-void MainWindow::read_lineinfo()
+void MainWindow::read_lineinfo_xml()
 {
- //   QDomDocument doc;
-    QFile file("./line.xml");
+    qWarning("read_lineinfo_xml");
+    QFile file("./station_line.xml");
+    //  QFile file("./line.xml");
     QString str;
     QString line;
     int star_index = 0, end_index = 0;
     QList<PageInfo> page_info;
     PageInfo info;
+    QByteArray byte;
     QStringList lineinfo;
+    int index;
+//    QTextCodec *codeC = QTextCodec::codecForName("gbk");
     if (!file.open(QIODevice::ReadOnly))
     {
         return;
     }
- //   QTextCodec *gbk = QTextCodec::codecForName("gbk");
-    QString text = file.readAll();
-    str = text;// gbk->toUnicode(text.toLocal8Bit());
+
+    byte = file.readAll();
+//    str = codeC->toUnicode(byte.data());
+    str = byte;
     file.close();
     while(1) {
         /*
@@ -280,61 +308,227 @@ void MainWindow::read_lineinfo()
         }
         end_index = str.indexOf('>',star_index);
         line = str.mid(star_index, end_index - star_index).simplified();  // 不包括最后的’>‘
-        str = str.mid(end_index+1).simplified();
+        str = str.mid(end_index+1).simplified();        
+//        line.indexOf("name=");
         lineinfo = line.split("\"");
         // 获取线路名称
     //    info.stat_id = line.section("\"",3,3);  // 截取线路名称 获取从第1个“分割的块开始到第1个“分割的块结束
-        info.stat_id = lineinfo.at(3);
+        index = lineinfo.indexOf(" name=");
+        if(index < 0 || lineinfo.length() < index + 1)
+            continue;
+        info.stat_id = lineinfo.at(index+1);
+
+//        if(lineinfo.length() > 5)
+//            info.stat_id = lineinfo.at(5);
+//        else
+//            continue;
         if(info.stat_id.right(1) == "路") {
             info.stat_id = info.stat_id.left(info.stat_id.count()-1);
             info.stat_id = info.stat_id.simplified();  // 去除空白字符
         }
         // 获取总站点数
-        info.station_total = lineinfo.at(11).simplified().toInt();
+        index = lineinfo.indexOf(" staCount=");
+        if(index < 0 || lineinfo.length() < index + 1)
+            continue;
+        info.station_total = lineinfo.at(index + 1).simplified().toInt();
+     //   info.station_total = lineinfo.at(11).simplified().toInt();
+        if(info.station_total <= 0)
+            continue;
         // 获取发车时间
-        info.timeSum = lineinfo.at(15);
-        info.timeWin = lineinfo.at(17);
+        index = lineinfo.indexOf(" sSta_Summers=");
+        if(index < 0 || lineinfo.length() < index + 1)
+            continue;
+        info.timeSum = lineinfo.at(index+1);
+
+        index = lineinfo.indexOf(" sSta_Winters=");
+        if(index < 0 || lineinfo.length() < index + 1)
+            continue;
+        info.timeWin = lineinfo.at(index+1);
+//        info.timeSum = lineinfo.at(15);
+//        info.timeWin = lineinfo.at(17);
+
         info.timeSum = info.timeSum.simplified();
         info.timeWin = info.timeWin.simplified();
         // 获取价格
-        info.price = lineinfo.at(23);
+        index = lineinfo.indexOf(" price=");
+        if(index < 0 || lineinfo.length() < index + 1)
+            continue;
+        info.price = lineinfo.at(index+1);
         info.price = info.price.simplified();
+//        info.price = lineinfo.at(23);
+//        info.price = info.price.simplified();
         /*<station id="1929381411" name="飞云渡-西环线" index="1" latitude="27.78393" longitude="120.61973" subway="" />*/
         //获取站点名
         star_index = str.indexOf("<station id=");
         end_index = str.indexOf("</line>");
         if(star_index < 0 || end_index < 0)
-            return;
+            continue;
         line = str.mid(star_index, end_index - star_index);  // 不包括最后的"</line>"
         lineinfo.clear();
         lineinfo = line.split("/>");  // 通过“分解字符串
         QStringList list;
-        for(uint16_t i = 0; i < lineinfo.length(); i++) {
+        QString statname;
+        for(int32_t i = 0; i < lineinfo.length(); i++) {
             list = lineinfo.at(i).split("\"");
             if(list.size() < 3)
                 continue;
-            QString s = list.at(3).simplified().replace("（", "︵ ").replace("）", " ︶");
-            s = s.replace("(", "︵ ");  //︵︶
-            s= s.replace(")", " ︶");
+            statname = list.at(3).simplified().replace("（", "(").replace("）", ")");
+            if(!statname.compare(station_name))
+                info.current_index = i;
+            QString s = statname.replace("(", "︵ ").replace(")", " ︶");  //︵︶
             info.name_list.append(s);
             list.clear();
         }
-      //  qDebug()<<"stat_id:"<<info.stat_id;
-      //  qDebug()<<"price:"<<info.price;
-      //  qDebug()<<"timeSum:"<<info.timeSum;
-      // qDebug()<<"timeWin:"<<info.timeWin;
-      //  qDebug()<<"station_total:"<<QString::number(info.station_total);
-        //for(uint16_t i = 0; i < info.name_list.length();i++)
-      //  {
-        //    qDebug()<<"name_list:"<<info.name_list.at(i);
-      //  }
         info.endstat_name = info.name_list.at(info.station_total-1);
+
         page_info.append(info);
         info.name_list.clear();
     }
     line_total = page_info.length();
-//    line_total = 9;
 
     createChildpage(page_info);
     createMainpage(page_info);
 }
+
+/*
+<?xml version="1.0" encoding="UTF-8"?>
+<root><adcode value="00" /><weather value="晴" />
+<winddirection value="风向北" /><windpower value="风力≤3级" /><temperature value="19" />
+<humidity value="42" /></root>
+*/
+void MainWindow::read_weather_xml()
+{
+    qWarning("read_weather_xml");
+    QFile file("./weather_information.xml");
+    QByteArray byte;
+    QString str;
+    int star_index = 0, end_index = 0;
+    QStringList list;
+    QTextCodec *codeC = QTextCodec::codecForName("UTF-8");
+    if (!file.open(QIODevice::ReadOnly))
+        return;
+    byte = file.readAll();
+    file.close();
+
+    str = codeC->toUnicode(byte.data());
+    star_index = str.indexOf("weather value");
+    end_index = str.indexOf("/root");
+    str = str.mid(star_index,end_index-star_index);
+    list = str.split("\"");
+
+    QString weath = list.at(1);
+    QString temp = list.at(7);
+    qWarning()<<weath<<" "<<temp;
+    top_widget->updateWeather(weath,temp);
+}
+
+/*<?xml version="1.0" encoding="UTF-8"?><root><StationName value="锦城春天-东向" /><Volume /><Lumia />
+ *<setLamp open="0:00:00" shut="23:59:59" /><version value="" /><switch bg_time="05:00:00" end_time="22:59:59" />
+ *<brightness value="2" /><fan max="0" min="0" /><heater max="0" min="0" /><black_scr value="4" count="1000" /></root>
+*/
+void MainWindow::read_initpara_xml()
+{
+    // init_station
+    qWarning("init_station");
+    QFile file("./init_station.xml");
+    QByteArray byte;
+    QString str, value;
+    QStringList list;
+    int index;
+    QTextCodec *codeC = QTextCodec::codecForName("UTF-8");
+    if (!file.open(QIODevice::ReadOnly))
+        return;
+    byte = file.readAll();
+    file.close();
+
+    str = codeC->toUnicode(byte.data());
+
+    value = read_xml_node(str,"<setLamp","/>");
+    list = value.split("\"");
+    index = list.indexOf(" open=");
+    if(!(index < 0 || list.length() < index + 1))
+        para.open = list.at(index+1);
+    index = list.indexOf(" shut=");
+    if(!(index < 0 || list.length() < index + 1))
+        para.shut = list.at(index+1);
+    list.clear();
+
+    value = read_xml_node(str,"<brightness","/>");
+    list = value.split("\"");
+    index = list.indexOf(" value=");
+    if(!(index < 0 || list.length() < index + 1))
+        para.brightness = list.at(index+1);
+    list.clear();
+
+    value = read_xml_node(str,"<StationName","/>");
+    list = value.split("\"");
+    index = list.indexOf(" value=");
+    if(!(index < 0 || list.length() < index + 1))
+        para.station_name = list.at(index+1);
+    list.clear();
+
+    value = read_xml_node(str,"<switch","/>");
+    list = value.split("\"");
+    index = list.indexOf(" bg_time=");
+    if(!(index < 0 || list.length() < index + 1))
+        para.bg_time = list.at(index+1);
+    index = list.indexOf(" end_time=");
+    if(!(index < 0 || list.length() < index + 1))
+        para.end_time = list.at(index+1);
+    list.clear();
+
+    value = read_xml_node(str,"<black_scr","/>");
+    list = value.split("\"");
+    index = list.indexOf(" value=");
+    if(!(index < 0 || list.length() < index + 1)) {
+        qWarning()<<list.at(index+1);
+        para.black_value = list.at(index+1).toInt();
+    }
+    index = list.indexOf(" count=");
+    if(!(index < 0 || list.length() < index + 1)) {
+        qWarning()<<list.at(index+1);
+        para.black_count = list.at(index+1).toInt();
+    }
+    list.clear();
+    top_widget->updateStat_name(para.station_name);
+//    qWarning()<<para.open;
+//    qWarning()<<para.shut;
+//    qWarning()<<para.bg_time;
+//    qWarning()<<para.end_time;
+//    qWarning()<<para.brightness;
+//    qWarning()<<para.station_name;
+}
+
+QString MainWindow::read_xml_node(QString xml, QString node, QString node_end)  // 若node_end没有，则默认为"/>"
+{   
+    QString value;
+    int star_index, end_index;
+    star_index = xml.indexOf(node);
+    star_index += node.length();
+    if(star_index < 0)
+        return "";
+    if(node_end.isEmpty()) {
+        node_end = "/>";
+    }
+    end_index = xml.indexOf(node_end);
+    value = xml.mid(star_index, end_index-star_index);
+    return value;
+}
+
+void MainWindow::freePage(uint16_t flag)
+{
+    if(flag == MAIN_PAGE) {
+        if(mainpage_list.isEmpty())
+            return;
+        for(uint16_t i = 0; i < mainpage_list.length(); i++) {
+            delete mainpage_list[i];
+        }
+    } else if(flag == CHILD_PAGE) {
+        if(childpage_list.isEmpty())
+            return;
+        for(uint16_t i = 0; i < childpage_list.length(); i++) {
+            delete childpage_list[i];
+        }
+    }
+}
+

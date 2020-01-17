@@ -8,6 +8,7 @@
         <file>dro.bmp</file>
         <file>d.png</file>
         <file>che.png</file>
+        <file>select.bmp</file>
     </qresource>
     <qresource prefix="/new/weather"/>
 </RCC>

@@ -14,6 +14,7 @@ class MainLine:public QFrame
 
 public:
     MainLine(int32_t ypos);
+    ~MainLine();
 
     QWidget *line_widget;
     QLabel *line_id;

@@ -10,6 +10,7 @@
 #include "Module/mainline.h"
 #include "Module/childline.h"
 #include "backstagemanager.h"
+#include "systemutils.h"
 
 namespace Ui {
 class MainWindow;
@@ -41,23 +42,29 @@ private:
     QFrame *bot;
     QList<ChildLine*> childpage_list;
 
+    QString station_name;
+
     int16_t line_total;
     uint16_t mainpage_line_max;
     uint16_t childpage_line_max;
     uint8_t main_tail;
     uint8_t child_tail;
+    InitPara para;
     bool bullein_flag;
 
 private :
     void createMainpage(QList<PageInfo> page_info);
-    int8_t createLine(int16_t page_number, int16_t count);
-    void freePage();
+//    int8_t createLine(int16_t page_number, int16_t count);
+    void freePage(uint16_t flag);
     void createChildpage(QList<PageInfo> page_info);
     void switchPage(int Index);
     void showNextPage(int page);
-    void read_lineinfo();
+    QString read_xml_node(QString,QString,QString);
 public slots:
-    void update_status(QString,QString,QList<qint8>);
+    void update_status_slot(QString,QString,QList<qint8>);
+    void read_lineinfo_xml();
+    void read_weather_xml();
+    void read_initpara_xml();
 private slots:
     void slotTimerOut();
 };

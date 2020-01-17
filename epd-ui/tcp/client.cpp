@@ -4,6 +4,7 @@
 #include <QDateTime>
 #include <QString>
 #include <QTextCodec>
+#include "tcp/StationCommand.h"
 
 #define CONFIG_FILE  "./SocketSyspam.ini"
 
@@ -22,7 +23,11 @@ client::client(QObject *parent) :
     system(BACK_LED2_CFG);
     get_version();
 }
-
+client* client::getInstance()
+{
+    static client instance;
+    return &instance;
+}
 void client::ReadMsg(void)
 {
     QByteArray msg = socket->readAll();
@@ -62,18 +67,18 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
              procotol_struct.command_serial = data_list.at(3).toInt();  // 指令序号
              procotol_struct.data_length = data_list.at(4).toInt();  // 数据长度
              procotol_struct.FRAME_END = data_list.at(data_list.size() - 1);  // 帧尾
-             data = data_list.at(5).mid(5,procotol_struct.data_length);
+             data = data_list.at(5).mid(0,procotol_struct.data_length);
         }
         if(procotol_struct.FRAME_HEADER == HEADER &&
                 procotol_struct.FRAME_END == END) {  // 帧头和帧尾符合协议
 
-            if(procotol_struct.direction == SERVICE2CLIENT) {   //  服务器主动调用和下发
-                qWarning()<<"rcv:"<<data;
+            if(procotol_struct.direction == SERVICE2CLIENT || procotol_struct.direction == 8) {   //  服务器主动调用和下发
+                //qWarning()<<"rcv:"<<data;
                 switch(procotol_struct.command_name) {
                     case 33:  // 下发时钟数据
                         {
 
-                    qWarning("cmd 33!");
+                    qWarning("cmd time!");
                               time_t sec = data_list.at(5).toInt();//seconds form 1970/1/1/
                               QString date = "date -s \"";
                               QDateTime dt = QDateTime::fromTime_t(sec);
@@ -96,15 +101,15 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
                         }
                         break;
                     case 34://LED屏开关命令
-                    qWarning("cmd 34!");
+                    qWarning("cmd LED ON OFF!");
                     SendOK_Response(ANSWER_SERVICE2CLIENT,procotol_struct.command_name,procotol_struct.command_serial);
                         break;
                     case 12://到站信息
-                    qWarning("cmd 12!");
+                    qWarning("cmd station info!");
                     SendOK_Response(ANSWER_SERVICE2CLIENT,procotol_struct.command_name,procotol_struct.command_serial);
                     break;
                     case 39://服务器下发公告信息
-                    qWarning("cmd 39!");
+                    qWarning("cmd serv mesg!");
 
                         break;
                     case 61://紧急消息
@@ -113,11 +118,12 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
                         break;
                     case 13://车辆分布位置
                         {
-                    qWarning("cmd 13!");
+                    qWarning()<<"cmd car pos!"<<data;
                             QStringList Data_buf;
-                            //qDebug()<<"444";
+
                             Data_buf = data_list.at(5).split(SINGAL_VEHICLE_END);  // 通过</line>分解字符串
                             if(Data_buf.at(Data_buf.size() - 1).contains(VEHICLE_LOCATION_FLAG,Qt::CaseSensitive)){  // 帧结构符合协议
+                           //     qDebug()<<"444";
                                 for(int i = 0; i < Data_buf.size()-1; i++){  // 去掉车辆信息中的<lines>结尾
                                     AddVehicleLocationTolist(Data_buf.at(i));
                                 }
@@ -126,7 +132,7 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
                         }
                         break;
                     case 41://批量通知
-                    qWarning("cmd 41");
+                    qWarning("cmd bulletin");
                     /*<?xml version="1.0" encoding="gb2312"?>
                         <root>
                             <msgs date="">
@@ -170,63 +176,82 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
                         }
                         break;
                     case 8://下发命令
-                    qWarning("cmd 8");
+                    qWarning("cmd down cmd");
                         QString cmd;
                         cmd = data_list.at(5).mid(0,procotol_struct.data_length);
+                       // command_handle(cmd);
                         if(!cmd.compare(CMD_RESTSRT)) {  // 重启
                             qWarning("reboot");
                             //system("reboot");
+                            SendOK_Response(ANSWER_SERVICE2CLIENT, 0,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_CLOSE)) {  // 关机
                             qWarning("poweroff");
                             //system("poweroff");
+                            SendOK_Response(ANSWER_SERVICE2CLIENT, 1,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_LIGHT_ON)) {  // 开灯
                             qWarning("CMD_LIGHT_ON");
+                            SendOK_Response(ANSWER_SERVICE2CLIENT, 2,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_LIGHT_OFF)) {  // 关灯
                             qWarning("CMD_LIGHT_OFF");
+                            SendOK_Response(ANSWER_SERVICE2CLIENT, 3,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_UPDATE_SET)) {  // 更新设置
                             qWarning("CMD_UPDATE_SET");
+                            SendOK_Response(ANSWER_SERVICE2CLIENT, 5,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_UPDATE_PRO)) {  // 更新节目
                             qWarning("CMD_UPDATE_PRO");
-                            emit update_program();
+                            //emit update_program();
+                            SendOK_Response(ANSWER_SERVICE2CLIENT, 4,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_UPDATE_LINE)) {  // 更新线路
                             qWarning("CMD_UPDATE_LINE");
-                            emit update_lineinfo();
+                            emit http_command(UPDATE_LINE_HTTP);
+                            SendOK_Response(ANSWER_SERVICE2CLIENT, 6,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_UPDATE_FILE)) {  // 软件升级
                             qWarning("CMD_UPDATE_FILE");
 
+                            SendOK_Response(ANSWER_SERVICE2CLIENT, 7,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_SCREENSHOT_ON)) {  // 截屏开
                             qWarning("CMD_SCREENSHOT_ON");
 
+                            SendOK_Response(ANSWER_SERVICE2CLIENT, 10,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_SCREENSHOT_OFF)) {  // 截屏关
                             qWarning("CMD_SCREENSHOT_OFF");
 
+                            SendOK_Response(ANSWER_SERVICE2CLIENT, 11,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_LIGHT_LOW)) {  // 背光 低
                             qWarning("CMD_LIGHT_LOW");
                             system(BACK_LED1_OFF);
                             system(BACK_LED2_OFF);
+                            SendOK_Response(ANSWER_SERVICE2CLIENT, 12,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_LIGHT_MED)) {  // 背光 中
                             qWarning("CMD_LIGHT_MED");
                             system(BACK_LED1_ON);
                             system(BACK_LED2_OFF);
+                            SendOK_Response(ANSWER_SERVICE2CLIENT, 13,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_LIGHT_HIG)) {  // 背光 高
                             qWarning("CMD_LIGHT_HIG");
                             system(BACK_LED1_ON);
                             system(BACK_LED2_ON);
+                            SendOK_Response(ANSWER_SERVICE2CLIENT,14,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_SCREE_ON)) {  // 屏幕 开
                             qWarning("CMD_SCREE_ON");
 
+                            SendOK_Response(ANSWER_SERVICE2CLIENT, 20,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_SCREE_OFF)) {  // 屏幕 关
                             qWarning("CMD_SCREE_OFF");
 
+                            SendOK_Response(ANSWER_SERVICE2CLIENT, 21,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_TEST_ON)) {  // 测试模式开
                             qWarning("CMD_TEST_ON");
 
+                            SendOK_Response(ANSWER_SERVICE2CLIENT, 25,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_TEST_OFF)) {  // 测试模式关
                             qWarning("CMD_TEST_OFF");
 
+                            SendOK_Response(ANSWER_SERVICE2CLIENT, 26,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_GET_PARA)) {  // 获取初始化参数
                             qWarning("CMD_GET_PARA");
-                            emit get_initpara();
+                            emit http_command(GET_INI_HTTP);
+                            SendOK_Response(ANSWER_SERVICE2CLIENT, 35,procotol_struct.command_serial);
                         }
                         break;
                 }
@@ -234,22 +259,22 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
                 switch(procotol_struct.command_name) {
            //     msg:  "$GPRS,1,1,1,2,OK,$END$"
                 case -1:
-                    qWarning(DataBuf);
-                    if(procotol_struct.command_serial == Serial) {
-                        if(data.compare("OK")) {
+                    qWarning()<<"heartbeat "<<data;
+                 //   if(procotol_struct.command_serial == Serial) {
+                        if(!data.compare("OK")) {
                             mHeartbeatFlag = true;
                             qWarning()<<"Heartbeat OK.";
                         }
-                    }
+                 //   }
                     break;
                 case 1:
-                    qWarning(DataBuf);
-                    if(procotol_struct.command_serial == Serial) {
-                        if(data.compare("OK")) {
+                    qWarning()<<"signup "<<data;
+                 //   if(procotol_struct.command_serial == Serial) {
+                        if(!data.compare("OK")) {
                             mSignUpFlag = true;
                             qWarning()<<"SignUp OK.";
                         }
-                    }
+                 //   }
                     break;
                 }
             }
@@ -274,6 +299,7 @@ void client::SendOK_Response(qint8 direction, qint16 name, qint16 serial)  //  �
 
 void client::AddVehicleLocationTolist(QString data)  // 获取线路状态
 {
+ //   qWarning("222AddVehicleLocationTolist");
     vehicle_localtion my_vehicle_localtion;
     //vehicle_list.push_back(Head);
     QString str =  data.section("\"",1,1);//截取线路名称    
@@ -294,6 +320,7 @@ void client::AddVehicleLocationTolist(QString data)  // 获取线路状态
             QString index =  Singalvehicle_list.at(j).section("\"",3,3);//截取station_index索引
             my_vehicle_localtion.station_index[my_vehicle_localtion.vehicle_amount] = index.toInt();
             my_vehicle_localtion.vehicle_amount++;
+         //   qWarning()<<"index: "<<index;
         }
 
     }
@@ -484,14 +511,4 @@ bool client::isConnected()
        // socketConnect(true);
         return true;
     }
-}
-
-void client::getWeather()
-{
-    /*
-    <?xml version="1.0" encoding="UTF-8"?>
-    <root><adcode value="00" /><weather value="晴" />
-    <winddirection value="风向北" /><windpower value="风力≤3级" /><temperature value="19" />
-    <humidity value="42" /></root>
-    */
 }

@@ -11,7 +11,7 @@ MainLine::MainLine(int32_t ypos = 0)
 
     line_id = new QLabel(line_widget);
     line_id->setObjectName(QStringLiteral("lineId"));
-    line_id->setGeometry(QRect(40, 10, 181, 91));
+    line_id->setGeometry(QRect(30, 8, 190, 91));
     QFont font;
     font.setPointSize(56);
     line_id->setFont(font);
@@ -60,6 +60,18 @@ MainLine::MainLine(int32_t ypos = 0)
     price_value->setObjectName(QStringLiteral("price_value"));
     price_value->setGeometry(QRect(770, 60, 71, 41));
     price_value->setFont(font2);
+}
+
+MainLine::~MainLine()
+{
+    delete line_widget;
+    delete line_id;
+    delete line_info;
+    delete over_stat;
+    delete beg_end_time_label;
+    delete beg_end_time_value;
+    delete price_label;
+    delete price_value;
 }
 
 void MainLine::showall()

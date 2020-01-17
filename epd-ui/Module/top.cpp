@@ -19,7 +19,7 @@ TopWidget::TopWidget()
     font.setWeight(75);
     stat_name->setFont(font);
     stat_name->setAlignment(Qt::AlignCenter);
-    stat_name->setText("杭州东站");
+    stat_name->setText("");
     stat_name->setGeometry(0,40,361,101);
 
     weath_ico = new QLabel(top_widget);
@@ -39,7 +39,7 @@ TopWidget::TopWidget()
     weath_text = new QLabel(top_widget);
     weath_text->setFont(QFont("Sans Serif", 18, 50));
     weath_text->setAlignment(Qt::AlignCenter);
-    weath_text->setText("多云\n10~12℃");
+    weath_text->setText("多云\n25℃");
     weath_text->setGeometry(550,35,141,91);
 
     date_text = new QLabel(top_widget);
@@ -101,6 +101,25 @@ TopWidget::TopWidget()
                   <<"沙尘暴"<<"台风"<<"特大暴雨"<<"雾"<<"小雪"<<"小雨"<<"阴"<<"雨夹雪"<<"阵雨"<<"中雪"<<"中雨";
 }
 
+TopWidget::~TopWidget()
+{
+    delete top_widget;
+    delete stat_name;
+    delete weath_ico;
+    delete weath_text;
+    delete date_text;
+    delete time_label;
+
+    delete title_widget;
+    delete lineId_name;
+    delete line_info_name;
+    delete over_stat_name;
+
+
+    weath_list_ico.clear();
+    weath_list_text.clear();
+}
+
 void TopWidget::showall()
 {
     top_widget->show();
@@ -124,14 +143,17 @@ void TopWidget::updateTime(QString time)
     time_label->update();
 }
 
-void TopWidget::updateWeather(enum weather_t  weather, QString temp = "10~12")
+void TopWidget::updateWeather(QString weather, QString temp = "25")
 {
-    QString ico = weath_list_ico.at(weather);
-    QString text = weath_list_text.at(weather);
-    weath_ico->setStyleSheet(ico);
-    weath_text->setText(text + "\n" +temp+"℃");
-    weath_ico->update();
-    weath_text->update();
+//    for(uint16_t i = 0; i < weath_list_text.length(); i++) {
+//        if(!weath_list_text.at(i).compare(weather)) {
+             weath_text->setText(weather + "\n" +temp+"℃");
+             QString ico = weath_list_ico.at(1);
+             weath_ico->setStyleSheet(ico);
+             weath_ico->update();
+             weath_text->update();
+//        }
+//    }
 }
 
 void TopWidget::TimeUpdate()

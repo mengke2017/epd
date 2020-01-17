@@ -9,20 +9,13 @@
 #include <QList>
 #include "bulletin.h"
 
-enum weather_t {
-    BAOXUE = 0, BAOYU, DABAOXUE, DABAOYU, DAXUE,
-    DAYU, DUOYUN, LEIZHENYU, MAI, QING, SHACHENBAO,
-    TAIFENG, TEDABAOYU, WU, XIAOXUE,XIAOYU,YIN,
-    YUJIAXUE, ZHENYU, ZHONGXUE, ZHONGYU
-};
-
-
 class TopWidget:public QFrame
 {
     Q_OBJECT
 
 public:
     TopWidget();
+    ~TopWidget();
 
     QWidget *top_widget;
     QLabel *stat_name;
@@ -42,7 +35,7 @@ public:
 public:
     void showall();
     void updateStat_name(QString);
-    void updateWeather(enum weather_t  weather, QString temp);
+    void updateWeather(QString  weather, QString temp);
     void updateDate(QString, QString);
     void updateTime(QString);
 //private:
