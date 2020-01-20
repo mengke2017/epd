@@ -7,6 +7,8 @@
 #include <QTimer>
 #include "customize.h"
 #include "tcp/http.h"
+#include "battery/batterymanager.h"
+
 class BackstageManager : public QObject
 {
     Q_OBJECT
@@ -18,16 +20,20 @@ private:
     serial           *serial_2;
     http             *http_client;
     QTimer           *timer;
+//    BatteryManager   *battery;
 signals:
     void update_status(QString,QString,QList<qint8>);
     void read_weather();
     void read_line();
     void read_initpara();
+    void update_bulletin(QString);
+    void ui_start(bool);
 public slots:
     void ReadVehicleLocation(void);
     void start(void);
     void WeatherRequest();
     void ui_handle(int);
+    void ui_bulletin(Msg);
 };
 
 #endif // BACKSTAGEMANAGER_H

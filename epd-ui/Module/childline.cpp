@@ -12,7 +12,7 @@ ChildLine::ChildLine(int16_t ypos)
 
     line_id = new QLabel(child_line_widget);
     line_id->setObjectName(QStringLiteral("line_id"));
-    line_id->setGeometry(QRect(33, 47, 91, 63));
+    line_id->setGeometry(QRect(13, 47, 111, 63));
     line_id->setStyleSheet(QLatin1String("background-color: transparent;"));
     QFont font;
     font.setFamily(QStringLiteral("Monospace"));
@@ -73,13 +73,13 @@ void ChildLine::create_line(QString id, int8_t current_index, int8_t station_tot
 
             che_ico_list.append(new QLabel(child_line_widget));
             xpos = line_list.at(i)->pos().x();   //  获取当前站点名控件的X坐标
-            che_ico_list.at(i)->setGeometry(QRect(xpos + 6, 0, 42, 20));
+            che_ico_list.at(i)->setGeometry(QRect(xpos + 1, 0, 42, 20));
             che_ico_list.at(i)->setStyleSheet(QLatin1String("background-color: transparent;"));
 
             if(stat_name_list.length() > i) {
                 line_list.at(i)->SetText(stat_name_list.at(i));
             }
-            if(i+1 == current_index)
+            if(i == current_index)
             {
                 line_list.at(i)->setSelect();
             }
@@ -87,27 +87,6 @@ void ChildLine::create_line(QString id, int8_t current_index, int8_t station_tot
     }
     update_line_id(id);
     update_info(timeS.mid(0,5), timeS.mid(7,5), price);
-}
-
-void ChildLine::create_cheico(QList<qint8> che_index)
-{
-//    if(!che_ico_list.isEmpty()) {
-//        che_ico_list_clear();
-//    }
-//    if(che_index.isEmpty())
-//        return;
-//    int16_t l = che_index.length();
-//    int xpos = 0;
-
-//    for(int16_t i = 0; i < l; i++) {
-//        if(line_list.length() <= che_index.at(i))   // 当前车所在的站点序号大于line_list的长度 视为无效
-//            continue;
-//        che_ico_list.append(new QLabel(child_line_widget));
-//        xpos = line_list.at(che_index.at(i))->pos().x();   //  获取当前站点名控件的X坐标
-//        che_ico_list.at(i)->setGeometry(QRect(xpos + 6, 0, 42, 20));
-//        che_ico_list.at(i)->setStyleSheet(QLatin1String("border-image: url(:/new/prefix1/che.png);\n"
-//                "background-color: transparent;"));
-//    }
 }
 
 void ChildLine::line_list_clear()
@@ -135,7 +114,6 @@ void ChildLine::che_ico_list_clear()
 }
 
 void ChildLine::update_status(QList<qint8> pos) {
- //   create_cheico(pos);
     if(pos.isEmpty())
         return;
    // int16_t l = pos.length();

@@ -13,6 +13,7 @@ public:
     static QByteArray toQByteArray(const uint8 * ch,int32 size);
     static QByteArray u32ToQByteArray(uint32 value);
     static QByteArray u16ToQByteArray(uint16 value);
+    static QByteArray _u16ToQByteArray(uint16 value);
     static QByteArray u8ToQByteArray(uint8 value);
     static bool stringToHex(QString str, uint32* value);
 

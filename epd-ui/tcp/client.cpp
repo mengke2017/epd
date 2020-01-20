@@ -5,8 +5,7 @@
 #include <QString>
 #include <QTextCodec>
 #include "tcp/StationCommand.h"
-
-#define CONFIG_FILE  "./SocketSyspam.ini"
+#include "battery/batterymanager.h"
 
 client::client(QObject *parent) :
     QObject(parent)
@@ -58,7 +57,9 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
 {
     procotol_syspam procotol_struct;
     if(!DataBuf.isEmpty()){
-        QString data = QString(DataBuf);
+        /*********gbk编码到Unicode转换*******/
+        QTextCodec *gbk = QTextCodec::codecForName("gbk");
+        QString data=gbk->toUnicode(DataBuf.data());
         QStringList data_list = data.split(",");
         if(data_list.size() >= 7) {  // 一条协议里至少有7种内容
              procotol_struct.FRAME_HEADER = data_list.at(0);  // head
@@ -73,7 +74,6 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
                 procotol_struct.FRAME_END == END) {  // 帧头和帧尾符合协议
 
             if(procotol_struct.direction == SERVICE2CLIENT || procotol_struct.direction == 8) {   //  服务器主动调用和下发
-                //qWarning()<<"rcv:"<<data;
                 switch(procotol_struct.command_name) {
                     case 33:  // 下发时钟数据
                         {
@@ -86,10 +86,10 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
 
                               if(strDate != NULL) {//有效时间
                                   QString date_time;
-                                  qWarning()<<strDate;
+                             //     qWarning()<<strDate;
                                   date_time = date.append(strDate.replace("T"," "));
                                   date_time.append("\"");
-                                  qWarning()<<date_time;
+                             //     qWarning()<<date_time;
                                   char*  dates;
                                   QByteArray ba = date_time.toLatin1(); // must
                                   dates=ba.data();
@@ -118,7 +118,7 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
                         break;
                     case 13://车辆分布位置
                         {
-                    qWarning()<<"cmd car pos!"<<data;
+                            qWarning()<<"cmd car pos!";//<<data;
                             QStringList Data_buf;
 
                             Data_buf = data_list.at(5).split(SINGAL_VEHICLE_END);  // 通过</line>分解字符串
@@ -132,49 +132,57 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
                         }
                         break;
                     case 41://批量通知
-                    qWarning("cmd bulletin");
-                    /*<?xml version="1.0" encoding="gb2312"?>
-                        <root>
-                            <msgs date="">
-                                <!--单条消息
-                                type：1显示器滚动区，2，媒体播放区，3，LED屏
-                                bgdate：开始日期
-                                enddate：结束日期
-                                bgtime：开始时间
-                                endtime：结束时间
-                                value：消息内容
-                                -->
-                                <msg type="3" bgdate="" enddate="" bgtime="" endtime=""  value =""></msg>
-                            </msgs>
-                        </root>*/
-                        {
-                            QStringList Data_buf;
-                            QStringList msg_buf;
-                            Msg msg;
-                            int16_t star_index = 0, end_index = 0;
-                            star_index = data.indexOf("<msg");
-                            if(star_index < 0)
-                                break;
-                            end_index = data.indexOf("</msg>",star_index);
-                            if(end_index < 0)  // 格式不正确
-                                break;
-                            data = data.mid(star_index, end_index-star_index);
-                            Data_buf = data.split("</msg>");  // 通过</msg>分解字符串
-                            for(uint16_t i = 0; i < Data_buf.length(); i++) {
-                                msg_buf = Data_buf.at(i).split("\"");
-                                if(msg_buf.length() < 11)
-                                    break;
-                                msg.type = msg_buf.at(1);
-                                msg.bgdate = msg_buf.at(3);
-                                msg.enddate = msg_buf.at(5);
-                                msg.bgtime = msg_buf.at(7);
-                                msg.endtime = msg_buf.at(9);
-                                msg.value = msg_buf.at(11);
-                                qWarning()<<"msg.value: "<<msg.value;
-                                msg_list.append(msg);
-                            }
+                        /*<?xml version="1.0" encoding="gb2312"?>
+                            <root>
+                                <msgs date="">
+                                    <!--单条消息
+                                    type：1显示器滚动区，2，媒体播放区，3，LED屏
+                                    bgdate：开始日期
+                                    enddate：结束日期
+                                    bgtime：开始时间
+                                    endtime：结束时间
+                                    value：消息内容
+                                    -->
+                                    <msg type="3" bgdate="" enddate="" bgtime="" endtime=""  value =""></msg>
+                                </msgs>
+                            </root>*/
+                    {
+                        qWarning("cmd bulletin ");
+                        //qWarning()<<data;
+                        QStringList Data_buf;
+                        QStringList msg_buf;
+                        Msg msg;
+                        QString end;
+                        int16_t star_index = 0, end_index = 0;
+                        star_index = data.indexOf("<msg ");
+                        if(star_index < 0)
+                            break;
+                        end_index = data.indexOf("</msg>",star_index);
+                        end = "</msg>";
+                        if(end_index < 0) {  // 格式不正确
+                            end_index = data.indexOf("/>",star_index);
+                            end = "/>";
+                            if(end_index < 0)
+                            break;
+                        }
+                        data = data.mid(star_index, end_index-star_index);
+                        Data_buf = data.split(end);  // 通过</msg>分解字符串
+                        for(uint16_t i = 0; i < Data_buf.length(); i++) {
+                            msg_buf = Data_buf.at(i).split("\"");
+                        if(msg_buf.length() < 11)
+                            break;
+                        msg.type = msg_buf.at(1);
+                        msg.bgdate = msg_buf.at(3);
+                        msg.enddate = msg_buf.at(5);
+                        msg.bgtime = msg_buf.at(7);
+                        msg.endtime = msg_buf.at(9);
+                        msg.value = msg_buf.at(11);
+                     //   qWarning()<<"msg.value: "<<msg.value;
+                        msg_list.append(msg);
+                        emit to_ui_bulletin(msg);
                         }
                         break;
+                    }
                     case 8://下发命令
                     qWarning("cmd down cmd");
                         QString cmd;
@@ -259,7 +267,7 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
                 switch(procotol_struct.command_name) {
            //     msg:  "$GPRS,1,1,1,2,OK,$END$"
                 case -1:
-                    qWarning()<<"heartbeat "<<data;
+               //     qWarning()<<"heartbeat "<<data;
                  //   if(procotol_struct.command_serial == Serial) {
                         if(!data.compare("OK")) {
                             mHeartbeatFlag = true;
@@ -268,7 +276,7 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
                  //   }
                     break;
                 case 1:
-                    qWarning()<<"signup "<<data;
+               //     qWarning()<<"signup "<<data;
                  //   if(procotol_struct.command_serial == Serial) {
                         if(!data.compare("OK")) {
                             mSignUpFlag = true;
@@ -302,10 +310,7 @@ void client::AddVehicleLocationTolist(QString data)  // 获取线路状态
  //   qWarning("222AddVehicleLocationTolist");
     vehicle_localtion my_vehicle_localtion;
     //vehicle_list.push_back(Head);
-    QString str =  data.section("\"",1,1);//截取线路名称    
-    /*********gbk编码到Unicode转换*******/
-    QTextCodec *gbk = QTextCodec::codecForName("gbk");
-    QString unicode=gbk->toUnicode(str.toLocal8Bit());
+    QString unicode =  data.section("\"",1,1);//截取线路名称
     if(unicode.right(1) == "路"){//检测到“路”
         my_vehicle_localtion.vehicle_name = unicode.left(unicode.count() - 1);
     }else{
@@ -379,6 +384,8 @@ void client::clientHeartbeat() // 终端心跳
 {
     QString send_data;
     QString pack;
+    QString InkInfo;
+    BatteryPara batteryPara;
     qWarning("clientHeartbeat");
     send_data.append(HEADER);
     send_data.append(",0,-1,");
@@ -388,17 +395,64 @@ void client::clientHeartbeat() // 终端心跳
     pack.append("<?xml version=\"1.0\" encoding=\"utf-8\"?><root>");
     pack.append("<stationId>"+ QString::number(my_syspam.device_id) +"</stationId>");
     pack.append("<playingItem>0</playingItem><temperature><lcd>0</lcd><box>0</box></temperature>");
-    pack.append("<humidity><lcd>80</lcd><box>80</box></humidity><bootState></bootState><fans>1000</fans>");
+    pack.append("<humidity><lcd>0</lcd><box>0</box></humidity><bootState></bootState><fans>0</fans>");
     pack.append("<accessControl>0</accessControl><volume>0</volume><illumination>0</illumination><TTS></TTS>");
     pack.append("<waterLevel></waterLevel><av></av><ac></ac><ap></ap><ate></ate><led></led><lumia></lumia>");
-    pack.append("<heater></heater><dvr></dvr><camera></camera>< router4g></ router4g></root>");
+    pack.append("<heater></heater><dvr></dvr><camera></camera><router4g></router4g></root>");
+
+    if(batteryPara.dayOrNight.compare("-1"))  // 如果值不等于-1
+        InkInfo.append("<dayOrNight>"+ batteryPara.dayOrNight +"</dayOrNight>");
+    if(batteryPara.arrayVoltage.compare("-1"))  // 如果值不等于-1
+        InkInfo.append("<arrayVoltage>"+ batteryPara.arrayVoltage +"</arrayVoltage>");
+    if(batteryPara.arrayCurrent.compare("-1"))  // 如果值不等于-1
+        InkInfo.append("<arrayCurrent>"+ batteryPara.arrayCurrent +"</arrayCurrent>");
+    if(batteryPara.arrayPower.compare("-1"))  // 如果值不等于-1
+        InkInfo.append("<arrayPower>"+ batteryPara.arrayPower +"</arrayPower>");
+    if(batteryPara.voltage.compare("-1"))  // 如果值不等于-1
+        InkInfo.append("<voltage>"+ batteryPara.voltage +"</voltage>");
+    if(batteryPara.current.compare("-1"))  // 如果值不等于-1
+        InkInfo.append("<current>"+ batteryPara.current +"</current>");
+    if(batteryPara.arrayCurrent.compare("-1"))  // 如果值不等于-1
+        InkInfo.append("<power>"+ batteryPara.power +"</power>");
+    if(batteryPara.batteryTemperature.compare("-1"))  // 如果值不等于-1
+        InkInfo.append("<batteryTemperature>"+ batteryPara.batteryTemperature +"</batteryTemperature>");
+    if(batteryPara.temperature.compare("-1"))  // 如果值不等于-1
+        InkInfo.append("<temperature>"+ batteryPara.temperature +"</temperature>");
+    if(batteryPara.batteryPower.compare("-1"))  // 如果值不等于-1
+        InkInfo.append("<batteryPower>"+ batteryPara.batteryPower +"</batteryPower>");
+    if(batteryPara.batteryVoltage.compare("-1"))  // 如果值不等于-1
+        InkInfo.append("<batteryVoltage>"+ batteryPara.batteryVoltage +"</batteryVoltage>");
+    if(batteryPara.maxVoltage.compare("-1"))  // 如果值不等于-1
+        InkInfo.append("<maxVoltage>"+ batteryPara.maxVoltage +"</maxVoltage>");
+    if(batteryPara.dayPowerDischarge.compare("-1"))  // 如果值不等于-1
+        InkInfo.append("<dayPowerDischarge>"+ batteryPara.dayPowerDischarge +"</dayPowerDischarge>");
+    if(batteryPara.monthPowerDischarge.compare("-1"))  // 如果值不等于-1
+        InkInfo.append("<monthPowerDischarge>"+ batteryPara.monthPowerDischarge +"</monthPowerDischarge>");
+    if(batteryPara.yearPowerDischarge.compare("-1"))  // 如果值不等于-1
+        InkInfo.append("<yearPowerDischarge>"+ batteryPara.yearPowerDischarge +"</yearPowerDischarge>");
+    if(batteryPara.totalPowerDischarge.compare("-1"))  // 如果值不等于-1
+        InkInfo.append("<totalPowerDischarge>"+ batteryPara.totalPowerDischarge +"</totalPowerDischarge>");
+    if(batteryPara.dayPowerCharge.compare("-1"))  // 如果值不等于-1
+        InkInfo.append("<dayPowerCharge>"+ batteryPara.dayPowerCharge +"</dayPowerCharge>");
+    if(batteryPara.monthPowerCharge.compare("-1"))  // 如果值不等于-1
+        InkInfo.append("<monthPowerCharge>"+ batteryPara.monthPowerCharge +"</monthPowerCharge>");
+    if(batteryPara.yearPowerCharge.compare("-1"))  // 如果值不等于-1
+        InkInfo.append("<yearPowerCharge>"+ batteryPara.yearPowerCharge +"</yearPowerCharge>");
+    if(batteryPara.totalPowerCharge.compare("-1"))  // 如果值不等于-1
+        InkInfo.append("<totalPowerCharge>"+ batteryPara.totalPowerCharge +"</totalPowerCharge>");
+    if(batteryPara.batteryVoltage.compare("-1"))  // 如果值不等于-1
+        InkInfo.append("<batteryVoltage>"+ batteryPara.batteryVoltage +"</batteryVoltage>");
+    if(batteryPara.batteryCurrent.compare("-1"))  // 如果值不等于-1
+        InkInfo.append("<batteryCurrent>"+ batteryPara.batteryCurrent +"</batteryCurrent>");
+
+    pack.append("<inkScreen>"+InkInfo+"</inkScreen>");
     send_data.append(QString::number(pack.length()));   // 长度
     send_data.append(",");
     send_data.append(pack);
     send_data.append(",");
     send_data.append(END);
     socket->write(send_data.toLatin1());
-    qWarning()<<"send:"<<send_data;
+//    qWarning()<<"send:"<<send_data;
 }
 
 void client::clientSignUp()
@@ -421,7 +475,7 @@ void client::clientSignUp()
     send_data.append(",");
     send_data.append(END);
     socket->write(send_data.toLatin1());
-    qWarning()<<"send:"<<send_data;
+ //   qWarning()<<"send:"<<send_data;
 }
 
 void client::get_version()
@@ -477,7 +531,7 @@ void client::TimeOut()
                     count = 0;
                 }
                 clientHeartbeat();
-                mHeartbeatTime = 2;   // 1分钟
+                mHeartbeatTime = 6;   // 1分钟
             }
         }
     } else {

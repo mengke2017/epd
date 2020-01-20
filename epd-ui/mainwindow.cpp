@@ -28,15 +28,15 @@ MainWindow::MainWindow(QWidget *parent) :
     timer = new QTimer();
 
     service = new BackstageManager();
-//    QThread *thread = new QThread(this);
-//    service->moveToThread(thread);
-//    service->start();
-//    connect(thread,SIGNAL(started()),service,SLOT(start()),Qt::QueuedConnection);
+    show_thread = new EPaper();
+    show_thread->start();
+
     connect(service,SIGNAL(update_status(QString,QString,QList<qint8>))
             ,this,SLOT(update_status_slot(QString,QString,QList<qint8>)));
     connect(service,SIGNAL(read_weather()),this,SLOT(read_weather_xml()));
     connect(service,SIGNAL(read_line()),this,SLOT(read_lineinfo_xml()));
     connect(service,SIGNAL(read_initpara()),this,SLOT(read_initpara_xml()));
+    connect(service,SIGNAL(update_bulletin(QString)),this,SLOT(update_bulletin_text(QString)));
 
     mainpage_line_max = MAX_LINE_COUNT_MAIN;
     childpage_line_max = MAX_LINE_COUNT_CHILD;
@@ -48,8 +48,7 @@ MainWindow::MainWindow(QWidget *parent) :
     sec_half = new QFrame(top);
     sec_half->setGeometry(0,234,1200,1366);
 
-
-    bullentin = new Bulletin(sec_half, 1216);
+    bullentin = new Bulletin(sec_half, 1206); // 1216
 
     bot = new QFrame();
     bot->setGeometry(0,0,1200,1600);
@@ -58,7 +57,10 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(timer, SIGNAL(timeout()), this, SLOT(slotTimerOut()));
     timer->start(1000);
     ui->centralWidget->hide();
-    init_device();
+
+//    RecvThread * recv;
+//    recv = new RecvThread;
+//    recv->start();
 }
 
 MainWindow::~MainWindow()
@@ -76,25 +78,25 @@ void MainWindow::slotTimerOut()
     //    showNextPage(MAIN_PAGE);
         bot->hide();
         top->show();
+        top->repaint();
         i = 0;
-  //      qWarning("bot");
+        qWarning("bot");
     }  else if(i == 0){
     //    showNextPage(MAIN_PAGE);
         top->hide();
         bot->show();
+        bot->repaint();
         i = 1;
-   //     qWarning("top");
+        qWarning("top");
     }
     if(i == -1){
         timer->stop();
-        read_initpara_xml();
+     //   read_initpara_xml();
         read_lineinfo_xml();
         top->show();
         i = 1;
-        timer->start(10000);
+
    //     qWarning("init");
-    } else {
-        dis_epd(AUTO_MODE);
     }
 }
 
@@ -104,7 +106,7 @@ void MainWindow::createMainpage(QList<PageInfo> page_info)
     uint16_t ypos = 0, max_y = 0;
 
     max_y = (mainpage_line_max)*MAIN_LINE_DIST;
-//    freePage(MAIN_PAGE);
+    freePage(MAIN_PAGE);
     for (int16_t i = 0; i < page_info.length(); i++) {
         ypos = (i*MAIN_LINE_DIST)%max_y;
         line = new MainLine(MAIN_LINE_FIRST + ypos);
@@ -121,46 +123,13 @@ void MainWindow::createMainpage(QList<PageInfo> page_info)
     }
     main_tail += 1;
     bullentin ->update_text("公告", "2019年文昌市省管领导班子和领导干部年度考核工作大会在市委党校召开，省委第四考核组组长、省工业和信息化厅一级巡视员廖强作考核动员讲话，市委书记钟鸣明，市委副书记、市长王晓桥分别作市委、市政府领导班子工作总");
-//    line = new MainLine(MAIN_LINE_FIRST + 131*2);
-//    line->creat_line("0", "杭州", "05:00", "22:00", "2");
-//    line->setParent(sec_half);
-//    mainpage_list.append(line);
-//    line = new MainLine(MAIN_LINE_FIRST + 131*3);
-//    line->creat_line("0", "杭州", "05:00", "22:00", "2");
-//    line->setParent(sec_half);
-//    mainpage_list.append(line);
-//    line = new MainLine(MAIN_LINE_FIRST + 131*4);
-//    line->creat_line("0", "杭州", "05:00", "22:00", "2");
-//    line->setParent(sec_half);
-//    mainpage_list.append(line);
-//    line = new MainLine(MAIN_LINE_FIRST + 131*5);
-//    line->creat_line("0", "杭州", "05:00", "22:00", "2");
-//    line->setParent(sec_half);
-//    mainpage_list.append(line);
-//    line = new MainLine(MAIN_LINE_FIRST + 131*6);
-//    line->creat_line("0", "杭州", "05:00", "22:00", "2");
-//    line->setParent(sec_half);
-//    mainpage_list.append(line);
-//    line = new MainLine(MAIN_LINE_FIRST + 131*7);
-//    line->creat_line("0", "杭州", "05:00", "22:00", "2");
-//    line->setParent(sec_half);
-//    mainpage_list.append(line);
-//    line = new MainLine(MAIN_LINE_FIRST + 131*8);
-//    line->creat_line("0", "杭州", "05:00", "22:00", "2");
-//    line->setParent(sec_half);
-//    mainpage_list.append(line);
 }
 void MainWindow::createChildpage(QList<PageInfo> page_info)
 {
     ChildLine *line;
-    uint16_t ypos = 0, max_y = 0;/*
-   // QList<int> array = {0,7,2,5,14,12};
-    static QList<QString> list;
-    list << "杭州图软科技杭州图软科技"<<"杭州图软科技杭州图软科技西湖站"<<"武林小广场"<<"杭州图软科技"<<"西湖站"<<"武林小广场"
-         << "杭州图软科技"<<"西湖站"<<"西湖武林小广场"<<"杭州图软科技"<<"西湖站"<<"武林小广场"
-         <<"杭州图软科技"<<"西湖站"<<"武林小广场"<<"杭州图软科技";*/
+    uint16_t ypos = 0, max_y = 0;
     max_y = (childpage_line_max)*320;
-//    freePage(CHILD_PAGE);
+    freePage(CHILD_PAGE);
     for(int16_t i = 0; i < page_info.length(); i++) {
         ypos = (i*320)%max_y;
         line = new ChildLine(15+ypos);
@@ -186,16 +155,16 @@ void MainWindow::createChildpage(QList<PageInfo> page_info)
 //    m_pStackedWidget->setCurrentIndex(Index);
 //}
 
-void MainWindow::showNextPage(int page)
-{
+void MainWindow::showNextPage(int page) {
     uint8_t i = 0;
     static bool top_first = true, bot_first = true;
     // 第一次进来 先显示 top
 
     if(page == MAIN_PAGE) {
-        if(line_total <= mainpage_line_max) {
+        if(line_total <= mainpage_line_max ||  top_first == true) {
             bot->hide();
             top->show();
+            top_first = false;
             return;
         }
         if(main_tail < line_total && main_tail > mainpage_line_max) {  // 两页显示不下时，继续创建
@@ -217,19 +186,26 @@ void MainWindow::showNextPage(int page)
             for(uint8_t i = mainpage_line_max; i < line_total; i++) {
                 mainpage_list.at(i)->hide();
             }
-            // 显示bot
-            top->repaint();
-            top->hide();
-            bot->show();
+//            // 显示bot
+//            top->repaint();
+//            top->hide();
+//            bot->show();
         }
     } else if(page == CHILD_PAGE) {
-        if(line_total <= childpage_line_max)
+        if(line_total <= childpage_line_max ||  bot_first == true) {
+            top->hide();
+            bot->show();
+            bot_first = false;
             return;
-        if(child_tail < line_total) {  // 两页显示不下时，继续创建
+        }
+        if(child_tail < line_total && child_tail > mainpage_line_max) {  // 两页显示不下时，继续创建
             for(i = child_tail; i < line_total && (i - child_tail) < childpage_line_max; i++) {
                 childpage_list.at(i-child_tail)->hide();
                 childpage_list.at(i)->show();
             }
+            top->hide();
+            bot->repaint();
+            bot->show();
             child_tail = i;
         } else if (child_tail == line_total) {  // 如果创建到最后一个了，回到开头
             for(uint8_t i = 0; i < childpage_line_max; i++) {  // mainpage_line_max是大于mainpage_list.len的
@@ -244,36 +220,25 @@ void MainWindow::showNextPage(int page)
     }
 }
 
-void MainWindow::update_status_slot(QString stat_id,QString count,QList<qint8> pos)
-{
-    qDebug()<<"update_status";
-    //qWarning()<<stat_id<<" "<<count<<" "<<pos;
+void MainWindow::update_status_slot(QString stat_id,QString count,QList<qint8> pos) {
+//    qDebug()<<"update_status";
     for(uint16_t j = 0; j < line_total ;j++) {
-        qWarning()<<"111";
         if (!stat_id.compare(childpage_list.at(j)->line_id->text())) {
             childpage_list.at(j)->update_status(pos);
+            if (count.toInt() < 0)
+                count = "--";
             mainpage_list.at(j)->update_status(count);
-        }
-        qWarning()<<stat_id<<" "<<"1路北"<<" "<<"2路北";
-        if (stat_id == "1路北") {
-            qWarning()<<"222";
-            childpage_list.at(0)->update_status(pos);
-            mainpage_list.at(0)->update_status(count);
-        }
-        QString s = "2路北";
-        if (!stat_id.compare(s)) {
-            qWarning()<<"333";
-            childpage_list.at(1)->update_status(pos);
-            mainpage_list.at(1)->update_status(count);
         }
     }
 }
 
-void MainWindow::read_lineinfo_xml()
-{
+void MainWindow::update_bulletin_text(QString text) {
+    bullentin ->update_text("公告",text);
+}
+
+void MainWindow::read_lineinfo_xml() {
     qWarning("read_lineinfo_xml");
     QFile file("./station_line.xml");
-    //  QFile file("./line.xml");
     QString str;
     QString line;
     int star_index = 0, end_index = 0;
@@ -282,7 +247,7 @@ void MainWindow::read_lineinfo_xml()
     QByteArray byte;
     QStringList lineinfo;
     int index;
-//    QTextCodec *codeC = QTextCodec::codecForName("gbk");
+    read_initpara_xml();
     if (!file.open(QIODevice::ReadOnly))
     {
         return;
@@ -301,9 +266,9 @@ void MainWindow::read_lineinfo_xml()
         */
         // 获取线路基本信息
         star_index = str.indexOf("<line id=");
-        qWarning("index:%d", star_index);
+       // qWarning("index:%d", star_index);
         if(star_index < 0) {
-            qWarning()<<"break";
+       //     qWarning()<<"break";
             break;
         }
         end_index = str.indexOf('>',star_index);
@@ -318,10 +283,6 @@ void MainWindow::read_lineinfo_xml()
             continue;
         info.stat_id = lineinfo.at(index+1);
 
-//        if(lineinfo.length() > 5)
-//            info.stat_id = lineinfo.at(5);
-//        else
-//            continue;
         if(info.stat_id.right(1) == "路") {
             info.stat_id = info.stat_id.left(info.stat_id.count()-1);
             info.stat_id = info.stat_id.simplified();  // 去除空白字符
@@ -331,7 +292,6 @@ void MainWindow::read_lineinfo_xml()
         if(index < 0 || lineinfo.length() < index + 1)
             continue;
         info.station_total = lineinfo.at(index + 1).simplified().toInt();
-     //   info.station_total = lineinfo.at(11).simplified().toInt();
         if(info.station_total <= 0)
             continue;
         // 获取发车时间
@@ -344,9 +304,6 @@ void MainWindow::read_lineinfo_xml()
         if(index < 0 || lineinfo.length() < index + 1)
             continue;
         info.timeWin = lineinfo.at(index+1);
-//        info.timeSum = lineinfo.at(15);
-//        info.timeWin = lineinfo.at(17);
-
         info.timeSum = info.timeSum.simplified();
         info.timeWin = info.timeWin.simplified();
         // 获取价格
@@ -355,8 +312,7 @@ void MainWindow::read_lineinfo_xml()
             continue;
         info.price = lineinfo.at(index+1);
         info.price = info.price.simplified();
-//        info.price = lineinfo.at(23);
-//        info.price = info.price.simplified();
+
         /*<station id="1929381411" name="飞云渡-西环线" index="1" latitude="27.78393" longitude="120.61973" subway="" />*/
         //获取站点名
         star_index = str.indexOf("<station id=");
@@ -373,7 +329,7 @@ void MainWindow::read_lineinfo_xml()
             if(list.size() < 3)
                 continue;
             statname = list.at(3).simplified().replace("（", "(").replace("）", ")");
-            if(!statname.compare(station_name))
+            if(!statname.compare(para.station_name))
                 info.current_index = i;
             QString s = statname.replace("(", "︵ ").replace(")", " ︶");  //︵︶
             info.name_list.append(s);
@@ -396,8 +352,7 @@ void MainWindow::read_lineinfo_xml()
 <winddirection value="风向北" /><windpower value="风力≤3级" /><temperature value="19" />
 <humidity value="42" /></root>
 */
-void MainWindow::read_weather_xml()
-{
+void MainWindow::read_weather_xml() {
     qWarning("read_weather_xml");
     QFile file("./weather_information.xml");
     QByteArray byte;
@@ -418,7 +373,6 @@ void MainWindow::read_weather_xml()
 
     QString weath = list.at(1);
     QString temp = list.at(7);
-    qWarning()<<weath<<" "<<temp;
     top_widget->updateWeather(weath,temp);
 }
 
@@ -426,8 +380,7 @@ void MainWindow::read_weather_xml()
  *<setLamp open="0:00:00" shut="23:59:59" /><version value="" /><switch bg_time="05:00:00" end_time="22:59:59" />
  *<brightness value="2" /><fan max="0" min="0" /><heater max="0" min="0" /><black_scr value="4" count="1000" /></root>
 */
-void MainWindow::read_initpara_xml()
-{
+void MainWindow::read_initpara_xml() {
     // init_station
     qWarning("init_station");
     QFile file("./init_station.xml");
@@ -464,7 +417,7 @@ void MainWindow::read_initpara_xml()
     list = value.split("\"");
     index = list.indexOf(" value=");
     if(!(index < 0 || list.length() < index + 1))
-        para.station_name = list.at(index+1);
+        para.station_name = list.at(index+1).simplified().replace("（", "(").replace("）", ")");
     list.clear();
 
     value = read_xml_node(str,"<switch","/>");
@@ -481,26 +434,19 @@ void MainWindow::read_initpara_xml()
     list = value.split("\"");
     index = list.indexOf(" value=");
     if(!(index < 0 || list.length() < index + 1)) {
-        qWarning()<<list.at(index+1);
+      //  qWarning()<<list.at(index+1);
         para.black_value = list.at(index+1).toInt();
     }
     index = list.indexOf(" count=");
     if(!(index < 0 || list.length() < index + 1)) {
-        qWarning()<<list.at(index+1);
+     //   qWarning()<<list.at(index+1);
         para.black_count = list.at(index+1).toInt();
     }
     list.clear();
     top_widget->updateStat_name(para.station_name);
-//    qWarning()<<para.open;
-//    qWarning()<<para.shut;
-//    qWarning()<<para.bg_time;
-//    qWarning()<<para.end_time;
-//    qWarning()<<para.brightness;
-//    qWarning()<<para.station_name;
 }
 
-QString MainWindow::read_xml_node(QString xml, QString node, QString node_end)  // 若node_end没有，则默认为"/>"
-{   
+QString MainWindow::read_xml_node(QString xml, QString node, QString node_end) {  // 若node_end没有，则默认为"/>"
     QString value;
     int star_index, end_index;
     star_index = xml.indexOf(node);
@@ -515,8 +461,7 @@ QString MainWindow::read_xml_node(QString xml, QString node, QString node_end)  
     return value;
 }
 
-void MainWindow::freePage(uint16_t flag)
-{
+void MainWindow::freePage(uint16_t flag) {
     if(flag == MAIN_PAGE) {
         if(mainpage_list.isEmpty())
             return;
@@ -532,3 +477,10 @@ void MainWindow::freePage(uint16_t flag)
     }
 }
 
+void MainWindow::ui_star_slot(bool flag)
+{
+    if(flag)
+        timer->start(5000);
+    else
+        timer->stop();
+}

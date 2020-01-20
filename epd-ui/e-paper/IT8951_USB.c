@@ -424,20 +424,32 @@ void EPD_display_Area(DWord starX, DWord starY, DWord width, DWord High, int mod
     IT8951_Cmd_LoadImageArea((Sys_info.uiImageBufBase), starX, starY, gulPanelW, gulPanelH);  //
     IT8951_Cmd_DisplayArea(starX, starY, width, High, mode, (Sys_info.uiImageBufBase), 1);
 }
-void dis_epd(uint8_t mode) {
+int dis_epd(uint8_t mode) {
     static int i = -1;
-    i ++;
-    Show_linuxfb(0, 0);
-    if(mode == GLOBAL_REF || mode == PART_REF) {
-        EPD_display_Area(0,0,gulPanelW,gulPanelH,mode);
-    } else {
-        if(i >= 10 || i == -1) {
-            EPD_display_Area(0,0,gulPanelW,gulPanelH,GLOBAL_REF);
-            i = 0;
-        } else {
-            EPD_display_Area(0,0,gulPanelW,gulPanelH,PART_REF);
+    if(Show_linuxfb(0, 0) == 0) {  // 不同
+        usleep(10000);
+        while(Show_linuxfb(0, 0) == 0) {
+            int c = 0;
+            c++;
+          //  printf("112233");
+            usleep(10000);
+            if(c > 10)
+                break;
         }
+        i ++;
+        if(mode == GLOBAL_REF || mode == PART_REF) {
+            EPD_display_Area(0,0,gulPanelW,gulPanelH,mode);
+        } else {
+            if(i >= 10 || i == -1) {
+                EPD_display_Area(0,0,gulPanelW,gulPanelH,GLOBAL_REF);
+                i = 0;
+            } else {
+                EPD_display_Area(0,0,gulPanelW,gulPanelH,PART_REF);
+            }
+        }
+        return 0;
     }
+    return 1;
 }
 void init_device(void) {
 

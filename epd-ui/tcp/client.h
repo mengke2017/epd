@@ -118,6 +118,7 @@ signals:
     void veh_data_re();
     void get_initpara();
     void http_command(int);
+    void to_ui_bulletin(Msg);
 private slots:
     void ReadMsg(void);
     void ConnectSuccess(void);

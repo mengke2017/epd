@@ -31,7 +31,6 @@ public:
                      QList<QString> stat_name_list,
                      QString timeS, QString timeE, QString price);
     void update_info(QString timeS, QString timeE, QString price);
-    void create_cheico(QList<qint8> che_index);
     void updateTime(QString);
     void update_status(QList<qint8>);
 protected:

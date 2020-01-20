@@ -41,7 +41,11 @@ SOURCES += \
     fileutils.cpp \
     Module/bulletin.cpp \
     tcp/http.cpp \
-    systemutils.cpp
+    systemutils.cpp \
+    e-paper/e-paper.cpp \
+    battery/batterymanager.cpp \
+    battery/recv_thread.cpp \
+    serial/uart.c
 
 HEADERS += \
         mainwindow.h \
@@ -61,7 +65,11 @@ HEADERS += \
     bzlib.h \
     tcp/StationCommand.h \
     tcp/http.h \
-    systemutils.h
+    systemutils.h \
+    e-paper/e-paper.h \
+    battery/batterymanager.h \
+    battery/recv_thread.h \
+    serial/uart.h
 
 FORMS += \
         mainwindow.ui

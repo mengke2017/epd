@@ -32,7 +32,7 @@ void IT8951_Cmd_DisplayArea(DWord, DWord, DWord, DWord, DWord, DWord, DWord);
 void IT8951_Cmd_LoadImageArea(DWord, DWord, DWord, DWord, DWord);
 void IT8951_Cmd_SetTemp(TempArg);
 void EPD_display_Area(DWord starX, DWord starY, DWord width, DWord High, int mode);
-void dis_epd(uint8_t);
+int dis_epd(uint8_t);
 void init_device(void);
 #ifdef __cplusplus
 }

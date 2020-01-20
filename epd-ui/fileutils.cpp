@@ -302,30 +302,22 @@ int64_t FileUtils::getFileSize( const QString& filePath )
 
 void FileUtils::StringToXML(QFile *file, QByteArray text)
 {
-//    QFile file("./http_data.xml");
-//    const char *code = endcode.toLocal8Bit().data();
-//    QString str;
     file->open(QIODevice::WriteOnly);
     QTextStream xml_file(file);
     xml_file.setCodec("utf-8");
-//    str=QString::fromUtf8(text.data());
     xml_file<<text;
     file->close();
 }
 
 QString FileUtils::ReadAllXmlNode(QFile *file, int command)
 {
-//    QFile file("./http_data.xml");
-   // QString Node_Attribute;
     QString Node_Name, Node_Name_end;
     QByteArray byte;
     QString data;
     QTextCodec *codeC = QTextCodec::codecForName("UTF-8");
     if(file->open(QIODevice::ReadOnly)){
-    //    QXmlStreamReader xml_file(file);
         switch(command){
             case UPDATE_LINE_HTTP:
-                //Node_Attribute = "E_station_line_AndroidResponse";
                 Node_Name     = "<E_station_line_AndroidResult>";
                 Node_Name_end = "</E_station_line_AndroidResult>";
                 break;
@@ -337,20 +329,16 @@ QString FileUtils::ReadAllXmlNode(QFile *file, int command)
                 Node_Name = "<getES_SMSForecostResult>";
                 Node_Name_end = "</getES_SMSForecostResult>";
                 break;
+            case GET_SERVICE_TIME:
+                Node_Name = "<getServiceTimeResult>";
+                Node_Name_end = "</getServiceTimeResult>";
+                //  qWarning("GET_SERVICE_TIME");
+                break;
         }
         byte = file->readAll();
         file->close();
         data = codeC->toUnicode(byte);
-//        while(!xml_file.atEnd()){
-//            if(xml_file.isStartElement()){//判断是否是节点的开始
-//               // QXmlStreamAttributes attributes = xml_file.attributes();
-//                //if(attributes.hasAttribute(Node_Attribute)){//判断是否存在属性
-//                    if(xml_file.name().toString() == Node_Name)
-//                        data = xml_file.readElementText();
-//              // }
-//            }
-//            xml_file.readNext();
-//        }
+
         int star_index, end_index;
         star_index = data.indexOf(Node_Name);
         end_index = data.indexOf(Node_Name_end, star_index);
@@ -359,6 +347,5 @@ QString FileUtils::ReadAllXmlNode(QFile *file, int command)
             return "";
         data = data.mid(star_index, end_index - star_index);
     }
-//    qWarning()<<"data: "<<data;
     return data;
 }

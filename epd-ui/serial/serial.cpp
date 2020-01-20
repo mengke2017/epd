@@ -1,10 +1,11 @@
 #include "serial.h"
 #include "tcp/client.h"
 #include "QDebug"
-serial::serial(QObject *parent) :
-    QObject(parent)
+#include "tcp/StationCommand.h"
+serial::serial()
 {
     fd = -1;
+    rev_buf = new QByteArray();
 }
 
 bool serial::openPort(QString portName, BaudRateType baundRate, DataBitsType dataBits, ParityType parity, StopBitsType stopBits, FlowType flow, int time_out)
@@ -32,7 +33,7 @@ bool serial::openPort(QString portName, BaudRateType baundRate, DataBitsType dat
             NewSerialPar.c_cflag |= B57600;
             break;
         case BAUD115200:
-            NewSerialPar.c_cflag |= B115200;
+            NewSerialPar.c_cflag |=  B115200;
             break;
         default:NewSerialPar.c_cflag &=(~CSTOPB);
             NewSerialPar.c_cflag |= B9600;
@@ -120,13 +121,13 @@ void serial::closePort()
 
 }
 
-int serial::writeData(QByteArray data)
+int serial::writeData(QByteArray buf,int len)
 {
     mutex.lock();
     int ret;
     ret = 0;
     if(fd != -1){
-        ret = write(fd,data.data(),data.length());
+        ret = write(fd,buf.data(),len);
     }
     mutex.unlock();
     return ret;
@@ -134,22 +135,30 @@ int serial::writeData(QByteArray data)
 
 QByteArray serial::readData()
 {
-//    mutex.lock();
-//    QByteArray returnArry;
-//    if(rev_buf->isEmpty()){
-//        returnArry.append("111");
-//        returnArry.clear();
-//    }else{
-//        returnArry.append(*rev_buf);
-//        rev_buf->clear();
-//    }
-//    mutex.unlock();
-    return 0;
+    mutex.lock();
+    QByteArray returnArry;
+    if(rev_buf->isEmpty()){
+        returnArry.append("111");
+        returnArry.clear();
+    }else{
+        returnArry.append(*rev_buf);
+        qWarning()<<"rcv: "<<rev_buf;
+        rev_buf->clear();
+    }
+    mutex.unlock();
+    return returnArry;
+}
+
+serial *serial::serialInt()
+{
+    static serial serial_int;
+    return &serial_int;
 }
 
 void serial::remoteDateInComing()
 {
-    char buf[500];
+    unsigned char buf[1024];
+    int recive_data_len = 0;
     QString buf_string;
     QString ip_tcp;
     qint32 port_tcp;
@@ -157,14 +166,35 @@ void serial::remoteDateInComing()
     QString str_data;
     mutex.lock();
     if(fd != -1){
-        read(fd,buf,sizeof(buf));
-        if(buf[0] == '$'){
-          str_data = QString(QLatin1String(buf));
-          do{
-             str_data.remove(str_data.right(1));
-          }while(str_data.right(1) != "~");
-          str_data.remove(str_data.right(1));
-          str_data.remove(str_data.left(1));
+        recive_data_len = read(fd,buf,sizeof(buf));
+        if(buf[0] == '$'){//TCP配置
+            str_data = QString(QLatin1String((char *)buf));
+            do{
+               str_data.remove(str_data.right(1));
+            }while(str_data.right(1) != "~");
+            str_data.remove(str_data.right(1));
+            str_data.remove(str_data.left(1));
+            if(!str_data.isEmpty()){
+                QStringList TCP_pam = str_data.split(",");
+                if(TCP_pam.size()>0){
+                    buf_string = TCP_pam.at(0);
+                    if(buf_string.left(3) == "ip:")
+                        ip_tcp = buf_string.mid(3);
+                    buf_string = TCP_pam.at(1);
+                    if(buf_string.left(5) == "port:")
+                        port_tcp = (buf_string.mid(5)).toInt();
+                    buf_string = TCP_pam.at(2);
+                   // qDebug()<<device_id;
+                    if(buf_string.left(3) == "id:")
+                        dev_id_tcp = (buf_string.mid(3)).toInt();
+                }
+            }
+            emit hasdata(ip_tcp,port_tcp,dev_id_tcp);
+        }else if(buf[0] == DEV_ID){//太阳能电池管理  0x7e既作为设备ID也可以作为帧头
+            for(int i = 0;i < recive_data_len;i++){
+                rev_buf->append(buf[i]);
+            }
+            emit BatteryHasData();
         }
         else{
             mutex.unlock();
@@ -172,23 +202,6 @@ void serial::remoteDateInComing()
         }
 
     }
-    qDebug()<<str_data;
-    if(!str_data.isEmpty()){
-        QStringList TCP_pam = str_data.split(",");
-        if(TCP_pam.size()>0){
-            buf_string = TCP_pam.at(0);
-            if(buf_string.left(3) == "ip:")
-                ip_tcp = buf_string.mid(3);
-            buf_string = TCP_pam.at(1);
-            if(buf_string.left(5) == "port:")
-                port_tcp = (buf_string.mid(5)).toInt();
-            buf_string = TCP_pam.at(2);
-           // qDebug()<<device_id;
-            if(buf_string.left(3) == "id:")
-                dev_id_tcp = (buf_string.mid(3)).toInt();
-        }
-    }
-    emit hasdata(ip_tcp,port_tcp,dev_id_tcp);
     mutex.unlock();
 }
 

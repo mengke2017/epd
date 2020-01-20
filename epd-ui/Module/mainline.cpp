@@ -13,7 +13,8 @@ MainLine::MainLine(int32_t ypos = 0)
     line_id->setObjectName(QStringLiteral("lineId"));
     line_id->setGeometry(QRect(30, 8, 190, 91));
     QFont font;
-    font.setPointSize(56);
+    font.setFamily(QStringLiteral("Sans Serif")); //Monospace
+    font.setPointSize(40);
     line_id->setFont(font);
     line_id->setLayoutDirection(Qt::RightToLeft);
     line_id->setAlignment(Qt::AlignCenter);
@@ -27,7 +28,7 @@ MainLine::MainLine(int32_t ypos = 0)
     line_info = new QLabel(line_widget);
     line_info->setObjectName(QStringLiteral("line_info"));
     line_info->setGeometry(QRect(250, 5, 641, 51));
-    font.setPointSize(37);
+    font.setPointSize(28);
     font.setBold(false);
     font.setItalic(false);
     font.setWeight(50);
@@ -38,7 +39,7 @@ MainLine::MainLine(int32_t ypos = 0)
     beg_end_time_label->setObjectName(QStringLiteral("beg_end_time_label"));
     beg_end_time_label->setGeometry(QRect(250, 60, 181, 41));
     QFont font1;
-    font1.setFamily(QStringLiteral("Monospace"));
+    font1.setFamily(QStringLiteral("Sans Serif")); //Monospace
     font1.setPointSize(20);
     beg_end_time_label->setFont(font1);
     beg_end_time_label->setText("首末班车时间:");
@@ -94,6 +95,7 @@ void MainLine::creat_line(QString id="", QString info="", QString timeSum="", QS
     }
     if(!price.isEmpty())
         price_value->setText(price + "元");
+    update_status("--");
 }
 void MainLine::updateLine_id(QString id)
 {

@@ -5,6 +5,8 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QObject>
+#include <QTimer>
+//#include <QSemaphore>
 #include "client.h"
 
 #define FALSE  0
@@ -84,13 +86,16 @@ public:
     QByteArray Bzip2DataHandle( QByteArray data);
     static http * httpInt(QString estationid);
     client *tcp_client;
+//    QSemaphore cmd_sem;
 private:
     QNetworkAccessManager *manager;
     void Webservice_Request(Raw_Header *raw);
     QString unicodeToUtf_8(const QString &resStr);
     int Utf16_To_Utf8 (const UTF16* sourceStart, UTF8* targetStart, size_t outLen ,  ConversionFlags flags);
     int  http_command;
+    QList<int> command_list;
     QString Device_id;
+    QTimer *timer;
 signals:
     void recieved_data(int);
     void http_recall(int);
@@ -98,6 +103,7 @@ signals:
 private slots:
     void ReplyFinished(QNetworkReply *);
     void http_protocol_handle(int command);
+    void _HttpPostRequest();
 public slots:
     void HttpPostRequest(int command);
 

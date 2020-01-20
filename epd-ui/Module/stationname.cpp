@@ -14,7 +14,7 @@ StationNmae::StationNmae(int16_t xpos,int16_t ypos)
                                             "background-color: transparent;}"));
 
     name_widget = new QWidget(stat_name_widget);
-    name_widget->setGeometry(0,25,40,245);
+    name_widget->setGeometry(0,25,40,240);
     name_widget->setObjectName("name_widget");
     name_widget->setStyleSheet("background-color: transparent;");
 
@@ -22,12 +22,11 @@ StationNmae::StationNmae(int16_t xpos,int16_t ypos)
     name_label2 = new QLabel(name_widget);
     name_label->setObjectName("name_label");
     name_label2->setObjectName("name_label2");
-    name_label->setGeometry(0,0,40,245);
-    name_label2->setGeometry(20,0,20,245);
+    name_label->setGeometry(0,0,40,240);
+    name_label2->setGeometry(20,0,20,240);
     name_label->setStyleSheet("background-color: transparent;");
     name_label2->setStyleSheet("background-color: transparent;");
     QFont font;
- //   font.setFamily(QString::fromUtf8("\346\226\207\346\263\211\351\251\277\345\276\256\347\261\263\351\273\221"));
     font.setFamily(QStringLiteral("Monospace"));
     font.setPointSize(22);
     name_label->setFont(font);

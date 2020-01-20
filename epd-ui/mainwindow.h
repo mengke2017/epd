@@ -11,6 +11,8 @@
 #include "Module/childline.h"
 #include "backstagemanager.h"
 #include "systemutils.h"
+#include "e-paper/e-paper.h"
+#include "battery/recv_thread.h"
 
 namespace Ui {
 class MainWindow;
@@ -30,6 +32,7 @@ private:
     QStackedWidget *m_pStackedWidget;
 
     BackstageManager *service;
+//    uint8_t current_index;
 
     QFrame *top;
     TopWidget *top_widget;
@@ -42,7 +45,7 @@ private:
     QFrame *bot;
     QList<ChildLine*> childpage_list;
 
-    QString station_name;
+//    QString station_name;
 
     int16_t line_total;
     uint16_t mainpage_line_max;
@@ -51,6 +54,8 @@ private:
     uint8_t child_tail;
     InitPara para;
     bool bullein_flag;
+
+    EPaper *show_thread;
 
 private :
     void createMainpage(QList<PageInfo> page_info);
@@ -65,6 +70,8 @@ public slots:
     void read_lineinfo_xml();
     void read_weather_xml();
     void read_initpara_xml();
+    void update_bulletin_text(QString);
+    void ui_star_slot(bool);
 private slots:
     void slotTimerOut();
 };

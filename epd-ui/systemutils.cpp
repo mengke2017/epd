@@ -97,6 +97,15 @@ QByteArray SystemUtils::u32ToQByteArray(uint32 value)
     return tmp;
 }
 
+QByteArray SystemUtils::_u16ToQByteArray(uint16 value)
+{
+    QByteArray tmp;
+    tmp.resize(2);
+    tmp[1] = (value>>8)&0xff;
+    tmp[0] = value&0xff;
+    return tmp;
+}
+
 QByteArray SystemUtils::u16ToQByteArray(uint16 value)
 {
     QByteArray tmp;

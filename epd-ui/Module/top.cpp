@@ -145,15 +145,49 @@ void TopWidget::updateTime(QString time)
 
 void TopWidget::updateWeather(QString weather, QString temp = "25")
 {
-//    for(uint16_t i = 0; i < weath_list_text.length(); i++) {
-//        if(!weath_list_text.at(i).compare(weather)) {
-             weath_text->setText(weather + "\n" +temp+"℃");
-             QString ico = weath_list_ico.at(1);
-             weath_ico->setStyleSheet(ico);
-             weath_ico->update();
-             weath_text->update();
-//        }
-//    }
+    uint16_t i = 0;
+    QString ico;
+    weath_text->setText(weather + "\n" +temp+"℃");
+    weath_text->update();
+    for(i = 0; i < weath_list_text.length(); i++) {
+        if(!weath_list_text.at(i).compare(weather)) {
+             ico = weath_list_ico.at(i);
+             //qWarning("111");
+             break;
+        }
+    }
+    if (i >= weath_list_text.length()) {
+       // qWarning("222");
+        if(weath_list_text.at(i).indexOf("云")) {
+            ico = weath_list_ico.at(6);
+        } else if(weath_list_text.at(i).indexOf("阵雨")) {
+            ico = weath_list_ico.at(7);
+        } else if(weath_list_text.at(i).indexOf("中雨")) {
+            ico = weath_list_ico.at(20);
+        } else if(weath_list_text.at(i).indexOf("大雨")) {
+            ico = weath_list_ico.at(5);
+        } else if(weath_list_text.at(i).indexOf("大暴雨")) {
+            ico = weath_list_ico.at(3);
+        } else if(weath_list_text.at(i).indexOf("雨")) {
+            ico = weath_list_ico.at(16);
+        } else if(weath_list_text.at(i).indexOf("雨夹雪")) {
+            ico = weath_list_ico.at(17);
+        } else if(weath_list_text.at(i).indexOf("中雪")) {
+            ico = weath_list_ico.at(19);
+        } else if(weath_list_text.at(i).indexOf("暴雪")) {
+            ico = weath_list_ico.at(0);
+        } else if(weath_list_text.at(i).indexOf("霾")) {
+            ico = weath_list_ico.at(8);
+        } else if(weath_list_text.at(i).indexOf("沙")) {
+            ico = weath_list_ico.at(10);
+        } else if(weath_list_text.at(i).indexOf("雾")) {
+            ico = weath_list_ico.at(13);
+        } else {
+            ico = weath_list_ico.at(6);
+        }
+    }
+    weath_ico->setStyleSheet(ico);
+    weath_ico->update();
 }
 
 void TopWidget::TimeUpdate()

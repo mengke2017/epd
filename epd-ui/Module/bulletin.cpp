@@ -14,8 +14,8 @@ Bulletin::Bulletin(QFrame *parent, uint16_t ypos):
     title_label = new QLabel(bulletin_widget);
     text_label->setObjectName(QStringLiteral("text"));
     title_label->setObjectName(QStringLiteral("title"));
-    title_label->setGeometry(QRect(0, 0, 1119, 30));
-    text_label->setGeometry(QRect(0, 30, 1119, 100));
+    title_label->setGeometry(QRect(5, 0, 1119, 30));
+    text_label->setGeometry(QRect(5, 30, 1119, 100));
     QFont font;
     font.setFamily(QStringLiteral("Monospace"));
     font.setBold(true);

@@ -20,7 +20,7 @@ void EPD_DrawRGBPixel(int16_t x0, int16_t y0, uint8_t color)
 
 	gpFrameBuf[y*Sys_info.uiWidth + x] = color;
 }
-
+//uint8_t  bmp_BitCount;
 
 static void DrawRGBdata(uint16_t Xpos, uint16_t Ypos,uint16_t Width, uint16_t High,const uint8_t* Matrix)
 {
@@ -87,56 +87,58 @@ static void DrawRGBdata(uint16_t Xpos, uint16_t Ypos,uint16_t Width, uint16_t Hi
 }
 
 uint8_t Show_linuxfb(uint32_t x, uint32_t y) {
-	int fp=0;
-	struct fb_var_screeninfo vinfo;
-	struct fb_fix_screeninfo finfo;
-	unsigned char * buf; 
-	fp = open ("/dev/fb0",O_RDWR);
+    static int fp=0;
+    static int flag = 0;
+    static struct fb_var_screeninfo vinfo;
+    static struct fb_fix_screeninfo finfo;
+    static unsigned char * old_buf = NULL;
+    static void *bits = NULL;
+    if(flag == 0)
+        fp = open ("/dev/fb0",O_RDWR);
 
+    if (fp < 0){
+        printf("Error : Can not open framebuffer device\n");
+        return -1;
+    }
 
-	if (fp < 0){
-		printf("Error : Can not open framebuffer device\n");
-		return -1;
-	}
+    if(flag == 0) {
+        if (ioctl(fp,FBIOGET_FSCREENINFO,&finfo)){
+            printf("Error reading fixed information\n");
+            return -1;
+        }
 
+        if (ioctl(fp,FBIOGET_VSCREENINFO,&vinfo)){
+            printf("Error reading variable information\n");
+            return -1;
+        }
 
-	if (ioctl(fp,FBIOGET_FSCREENINFO,&finfo)){
-		printf("Error reading fixed information\n");
-		return -1;
-	}
+        bits = mmap(0, finfo.smem_len, PROT_READ | PROT_WRITE, MAP_SHARED, fp, 0);
+        if (bits == MAP_FAILED) {
+            perror("failed to mmap framebuffer");
+            close(fp);
+            return -1;
+        }
 
-	if (ioctl(fp,FBIOGET_VSCREENINFO,&vinfo)){
-		printf("Error reading variable information\n");
-		return -1;
-	}
-	buf = (unsigned char *)calloc(1, finfo.smem_len/2);
-	
-	if(buf == NULL) {
-    	printf("calloc mem faile.\n");
-	    return -1;
-	}
-//	printf("reading screen...\n");
-	int l = read(fp, buf, finfo.smem_len/2);
-//	printf("read len: %d\n", l);
-//	unsigned long frame_address= finfo.smem_start;
+        if(old_buf == NULL) {
+            old_buf = (unsigned char *)calloc(1, finfo.smem_len/2);
+            if(old_buf == NULL) {
+                printf("calloc mem faile.\n");
+                return -1;
+            }
+        }
+        }
 //    bmp_BitCount = vinfo.bits_per_pixel;
 
-	if (l <= 0) {
-    	printf("read /dev/fb0 faile.\n");
-	    return -1;
-	}
-	DrawRGBdata(x, y, vinfo.xres, vinfo.yres, buf);
+    DrawRGBdata(x, y, vinfo.xres, vinfo.yres, (uint8_t*)bits);
 
-//	printf("The mem star is :%ld\n", finfo.smem_start);
-//	printf("The mem len is :%d\n",finfo.smem_len);
-//	printf("The line_length is :%d\n",finfo.line_length);
-//	printf("The xres is :%d\n",vinfo.xres);
-//	printf("The yres is :%d\n",vinfo.yres);
-//	printf("bits_per_pixel is :%d\n",vinfo.bits_per_pixel);
-	if(buf != NULL) {	
-    	free(buf);
-		buf = NULL;
-	}
-	close (fp);
-	return 0;
+    flag = 1;
+    if(strncmp((int8_t*)bits, (int8_t*)old_buf, finfo.smem_len/2) != 0) {
+        strncpy((int8_t*)old_buf, (int8_t*)bits, finfo.smem_len/2);
+//        munmap(bits,finfo.smem_len);
+        //close (fp);
+        return 0;  // 刷新
+    }
+//    munmap(bits,finfo.smem_len);
+   // close (fp);
+    return 1;  // 不刷新
 }

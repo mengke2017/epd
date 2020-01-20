@@ -7,7 +7,13 @@
 #include "fileutils.h"
 #include "tcp/client.h"
 #include <stdio.h>
+#include <QSemaphore>
 #include "systemutils.h"
+
+QSemaphore sem(1);
+
+#define HTTP_TIME 5000
+
 http::http(QString estationid)
 {
     manager = new QNetworkAccessManager(this);
@@ -16,6 +22,9 @@ http::http(QString estationid)
     connect(this,SIGNAL(http_recall(int)),this,SLOT(HttpPostRequest(int)));
     Device_id = estationid;
     tcp_client = client::getInstance();
+    timer = new QTimer();
+    connect(timer, SIGNAL(timeout()), this, SLOT(_HttpPostRequest()));
+    timer->start(HTTP_TIME);
 }
 
 void http::Webservice_Request(Raw_Header *raw)
@@ -150,7 +159,6 @@ void http::http_protocol_handle(int command)
         //QTextCodec *codec = QTextCodec::codecForName("utf-8");
        // codec->fromUnicode()
         xml_data = Bzip2DataHandle(data.toUtf8());
-       //  qDebug()<<data;
     }
 }
 
@@ -215,6 +223,11 @@ QByteArray http::Bzip2DataHandle(QByteArray data)
 
         xml_file << data;
         weather_file.close();
+    } else if (http_command == GET_SERVICE_TIME) {
+        QString date = "date -s \"" + data + "\"";
+        system(date.toLatin1().data());
+        system("hwclock -w");
+
     } else {
         if(http_command == UPDATE_LINE_HTTP)
             file_name = "./station_line.xml";
@@ -248,14 +261,18 @@ QByteArray http::Bzip2DataHandle(QByteArray data)
             if(ret != BZ_FINISH_OK){
                 buf_utf16 = (ushort *)buffer;
                 Utf16_To_Utf8(buf_utf16, buffer_utf8, 8000, lenientConversion);
-                xml_line_file<< (char *)buffer_utf8;
-                qWarning((char *)buffer_utf8);
+               // xml_line_file<< (char *)buffer_utf8;
+                QString s = (char *)buffer_utf8;
+                QTextCodec *codec = QTextCodec::codecForName("utf-8");
+                QByteArray byte = codec->fromUnicode(s);
+                xml_line_file << byte;
+            //    qWarning()<<"222"<<byte;
             }
         }while(bz_uncompress.avail_out == 0);
         BZ2_bzDecompressEnd(&bz_uncompress);
         line_file.close();
     }
-    qWarning("to_local");
+ //   qWarning("to_local");
     emit to_local(http_command);
     QByteArray bzipUnomprData;
     return bzipUnomprData;
@@ -272,25 +289,46 @@ void http::ReplyFinished(QNetworkReply *reply)
     if(reply->error() == QNetworkReply :: NoError){
         QFile file("./http_data.xml");
         QByteArray byte = reply->readAll();
-//        QString unicode;
-//        QTextCodec *codec = QTextCodec::codecForName("utf-8");
-//        unicode = codec->toUnicode(byte);
-//        byte = unicode.toLocal8Bit();
-//        qWarning()<<"code :"<<byte.toHex();
         FileUtils::StringToXML(&file, byte);
         emit recieved_data(http_command);
     } else {
         qDebug()<<"reply error!";
     }
+    sem.release(1);
     reply->deleteLater();
 }
+//
 
-void http::HttpPostRequest(int command)
+void http::HttpPostRequest(int command) {
+//    static bool flag = false;
+    command_list.append(command);
+//    if(command_list.length() == 1) {
+//        _HttpPostRequest();
+//        if(flag) {
+//            timer->stop();
+//            flag = false;
+//        } else {
+//            flag = true;
+//        }
+//    }
+//    if(flag) {
+//        timer->start(HTTP_TIME);  //
+//    }
+}
+
+void http::_HttpPostRequest()
 {
     Raw_Header raw;
     QString verifycode;
     QString estationid;
-    switch(command){
+    if(command_list.isEmpty()) {
+        return;
+    }
+    if(0 == sem.available()) {
+        return;
+    }
+    sem.acquire(1);
+    switch(command_list.last()){
         case GET_INI_HTTP:
             estationid = Device_id;
             raw.Content_Type = "text/xml;charset=UTF-8";
@@ -298,9 +336,9 @@ void http::HttpPostRequest(int command)
             raw.Envelope_start = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:gps=\"http://www.56gps.cn/\">";
             raw.Envelope_end = "</soapenv:Envelope>";
             raw.Soap_XML = raw.Soap_XML.append(raw.Envelope_start);
-            raw.Soap_XML = raw.Soap_XML.append("<soapenv:Header/><soapenv:Body><gps:getStationInitialization><gps:estation_id>");
+            raw.Soap_XML = raw.Soap_XML.append("<soapenv:Header/><soapenv:Body><gps:getStationInitialization><gps:estationid>");
             raw.Soap_XML = raw.Soap_XML.append(estationid);
-            raw.Soap_XML = raw.Soap_XML.append("</gps:estation_id></gps:getStationInitialization></soapenv:Body>");
+            raw.Soap_XML = raw.Soap_XML.append("</gps:estationid></gps:getStationInitialization></soapenv:Body>");
             raw.Soap_XML = raw.Soap_XML.append(raw.Envelope_end);
             Webservice_Request(&raw);
             http_command = GET_INI_HTTP;
@@ -335,5 +373,21 @@ void http::HttpPostRequest(int command)
             Webservice_Request(&raw);
             http_command = WEATHER_HTTP;
             break;
+        case GET_SERVICE_TIME:
+            raw.Content_Type = "application/soap+xml;charset=UTF-8;action=\"http://www.56gps.cn/getServiceTime\"";
+            raw.Envelope_start = "<soap:Envelope xmlns:soap=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:gps=\"http://www.56gps.cn/\">";
+            raw.Envelope_end = "</soap:Envelope>";
+            raw.Soap_XML = raw.Soap_XML.append(raw.Envelope_start);
+            raw.Soap_XML = raw.Soap_XML.append(" <soap:Header/><soap:Body><gps:getServiceTime/></soap:Body>");
+            raw.Soap_XML = raw.Soap_XML.append(raw.Envelope_end);
+            raw.Content_Length = raw.Soap_XML.size();
+            Webservice_Request(&raw);
+            http_command = GET_SERVICE_TIME;
+            break;
+        default:
+            sem.release(1);  // 无效命令
+            break;
     }
+    if(!command_list.isEmpty())
+        command_list.removeLast();
 }
