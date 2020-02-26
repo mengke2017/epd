@@ -436,17 +436,17 @@ int dis_epd(uint8_t mode) {
             if(c > 10)
                 break;
         }
-        i ++;
-        if(mode == GLOBAL_REF || mode == PART_REF) {
-            EPD_display_Area(0,0,gulPanelW,gulPanelH,mode);
-        } else {
-            if(i >= 10 || i == -1) {
-                EPD_display_Area(0,0,gulPanelW,gulPanelH,GLOBAL_REF);
-                i = 0;
-            } else {
-                EPD_display_Area(0,0,gulPanelW,gulPanelH,PART_REF);
-            }
-        }
+//        i ++;
+//        if(mode == GLOBAL_REF || mode == PART_REF) {
+//            EPD_display_Area(0,0,gulPanelW,gulPanelH,mode);
+//        } else {
+//            if(i >= 10 || i == -1) {
+//                EPD_display_Area(0,0,gulPanelW,gulPanelH,GLOBAL_REF);
+//                i = 0;
+//            } else {
+//                EPD_display_Area(0,0,gulPanelW,gulPanelH,PART_REF);
+//            }
+//        }
         return 0;
     }
     return 1;

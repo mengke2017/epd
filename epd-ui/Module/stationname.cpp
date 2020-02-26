@@ -40,9 +40,7 @@ StationNmae::StationNmae(int16_t xpos,int16_t ypos)
 StationNmae::~StationNmae()
 {
     delete stat_name_widget;
-    delete drop_label;
-    delete name_label;
-    delete name_label2;
+    stat_name_widget = NULL;
 }
 
 void StationNmae::SetText(QString text)

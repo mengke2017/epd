@@ -91,12 +91,12 @@ void MainWindow::slotTimerOut()
     }
     if(i == -1){
         timer->stop();
-     //   read_initpara_xml();
+        read_initpara_xml();
         read_lineinfo_xml();
         top->show();
         i = 1;
-
-   //     qWarning("init");
+        timer->start(10000);
+        qWarning("init");
     }
 }
 
@@ -122,7 +122,7 @@ void MainWindow::createMainpage(QList<PageInfo> page_info)
         mainpage_list.append(line);
     }
     main_tail += 1;
-    bullentin ->update_text("公告", "2019年文昌市省管领导班子和领导干部年度考核工作大会在市委党校召开，省委第四考核组组长、省工业和信息化厅一级巡视员廖强作考核动员讲话，市委书记钟鸣明，市委副书记、市长王晓桥分别作市委、市政府领导班子工作总");
+    bullentin ->update_text("公告", "提高警惕，保持距离，电话沟通，钉钉开会，不要聚集。各部门负责人要疫情强化风险担当，为健康生产保驾护航。");
 }
 void MainWindow::createChildpage(QList<PageInfo> page_info)
 {
@@ -468,12 +468,14 @@ void MainWindow::freePage(uint16_t flag) {
         for(uint16_t i = 0; i < mainpage_list.length(); i++) {
             delete mainpage_list[i];
         }
+        mainpage_list.clear();
     } else if(flag == CHILD_PAGE) {
         if(childpage_list.isEmpty())
             return;
         for(uint16_t i = 0; i < childpage_list.length(); i++) {
             delete childpage_list[i];
         }
+        childpage_list.clear();
     }
 }
 

@@ -1,7 +1,7 @@
 #include "http.h"
 #include <QDebug>
 #include <QtNetwork>
-#include <QtZlib/zlib.h>
+//#include <QtZlib/zlib.h>
 #include "tcp/StationCommand.h"
 #include "bzlib.h"
 #include "fileutils.h"
@@ -161,7 +161,7 @@ void http::http_protocol_handle(int command)
         xml_data = Bzip2DataHandle(data.toUtf8());
     }
 }
-
+/*
 QByteArray http::qGzipUncompress(const QByteArray &data)
 {
     if(!data.data()){
@@ -210,7 +210,7 @@ QByteArray http::qGzipUncompress(const QByteArray &data)
     }while(unGzipStream.avail_out == 0);  
     return gzipUnomprData;
 }
-
+*/
 QByteArray http::Bzip2DataHandle(QByteArray data)
 {
     QString file_name;

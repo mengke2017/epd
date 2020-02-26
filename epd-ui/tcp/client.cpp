@@ -169,17 +169,17 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
                         Data_buf = data.split(end);  // 通过</msg>分解字符串
                         for(uint16_t i = 0; i < Data_buf.length(); i++) {
                             msg_buf = Data_buf.at(i).split("\"");
-                        if(msg_buf.length() < 11)
-                            break;
-                        msg.type = msg_buf.at(1);
-                        msg.bgdate = msg_buf.at(3);
-                        msg.enddate = msg_buf.at(5);
-                        msg.bgtime = msg_buf.at(7);
-                        msg.endtime = msg_buf.at(9);
-                        msg.value = msg_buf.at(11);
-                     //   qWarning()<<"msg.value: "<<msg.value;
-                        msg_list.append(msg);
-                        emit to_ui_bulletin(msg);
+                            if(msg_buf.length() < 11)
+                                break;
+                            msg.type = msg_buf.at(1);
+                            msg.bgdate = msg_buf.at(3);
+                            msg.enddate = msg_buf.at(5);
+                            msg.bgtime = msg_buf.at(7);
+                            msg.endtime = msg_buf.at(9);
+                            msg.value = msg_buf.at(11);
+                         //   qWarning()<<"msg.value: "<<msg.value;
+                            msg_list.append(msg);
+                            emit to_ui_bulletin(msg);
                         }
                         break;
                     }

@@ -65,14 +65,8 @@ MainLine::MainLine(int32_t ypos = 0)
 
 MainLine::~MainLine()
 {
-    delete line_widget;
-    delete line_id;
-    delete line_info;
-    delete over_stat;
-    delete beg_end_time_label;
-    delete beg_end_time_value;
-    delete price_label;
-    delete price_value;
+    delete line_widget;  // 只删除父控件就可以了
+    line_widget = NULL;
 }
 
 void MainLine::showall()

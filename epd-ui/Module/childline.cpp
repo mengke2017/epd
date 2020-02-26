@@ -31,11 +31,11 @@ ChildLine::ChildLine(int16_t ypos)
 
 ChildLine::~ChildLine()
 {
-    delete child_line_widget;
-    delete line_id;
-    delete info;
     line_list_clear();
     che_ico_list_clear();
+
+    delete child_line_widget;
+    child_line_widget = NULL;
 }
 
 void ChildLine::update_line_id(QString id)

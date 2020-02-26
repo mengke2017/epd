@@ -15,7 +15,8 @@ void EPD_DrawRGBPixel(int16_t x0, int16_t y0, uint8_t color)
 
 	x = Sys_info.uiWidth - y0;
 	y = x0;
-    if(x < 0 || x >= (uint16_t)Sys_info.uiWidth || y < 0 || y >= (uint16_t)Sys_info.uiHeight)
+    if(x < 0 || x >= (uint16_t)Sys_info.uiWidth
+            || y < 0 || y >= (uint16_t)Sys_info.uiHeight)
 		return ;	
 
 	gpFrameBuf[y*Sys_info.uiWidth + x] = color;
@@ -129,7 +130,7 @@ uint8_t Show_linuxfb(uint32_t x, uint32_t y) {
         }
 //    bmp_BitCount = vinfo.bits_per_pixel;
 
-    DrawRGBdata(x, y, vinfo.xres, vinfo.yres, (uint8_t*)bits);
+/////    DrawRGBdata(x, y, vinfo.xres, vinfo.yres, (uint8_t*)bits);
 
     flag = 1;
     if(strncmp((int8_t*)bits, (int8_t*)old_buf, finfo.smem_len/2) != 0) {

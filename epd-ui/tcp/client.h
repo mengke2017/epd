@@ -23,14 +23,14 @@
 #define SINGAL_VEHICLE_END      "</line>" //单独一条线路的结尾
 #define SPLIT_CHAR              "vehicle "
 
-#define BACK_LED1_CFG  "echo \"1\" > /sys/class/gpio_sw/PC22/cfg\n"
-#define BACK_LED2_CFG  "echo \"1\" > /sys/class/gpio_sw/PC21/cfg\n"
+#define BACK_LED1_CFG /* "echo \"1\" > /sys/class/gpio_sw/PC22/cfg\n"*/ " "
+#define BACK_LED2_CFG /* "echo \"1\" > /sys/class/gpio_sw/PC21/cfg\n"*/ " "
 
-#define BACK_LED1_ON  "echo \"1\" > /sys/class/gpio_sw/PC22/data\n"
-#define BACK_LED1_OFF "echo \"0\" > /sys/class/gpio_sw/PC22/data\n"
+#define BACK_LED1_ON  /*"echo \"1\" > /sys/class/gpio_sw/PC22/data\n"*/ " "
+#define BACK_LED1_OFF /*"echo \"0\" > /sys/class/gpio_sw/PC22/data\n"*/ " "
 
-#define BACK_LED2_ON  "echo \"1\" > /sys/class/gpio_sw/PC21/data\n"
-#define BACK_LED2_OFF "echo \"0\" > /sys/class/gpio_sw/PC21/data\n"
+#define BACK_LED2_ON  /*"echo \"1\" > /sys/class/gpio_sw/PC21/data\n"*/ " "
+#define BACK_LED2_OFF /*"echo \"0\" > /sys/class/gpio_sw/PC21/data\n"*/ " "
 
 
 #define CMD_RESTSRT         "restart"
