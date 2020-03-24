@@ -15,6 +15,7 @@ client::client(QObject *parent) :
     my_filename = CONFIG_FILE;
     connect(socket,SIGNAL(connected()),this,SLOT(ConnectSuccess()));
     connect(socket,SIGNAL(readyRead()),this,SLOT(ReadMsg()));
+    connect(socket,SIGNAL(disconnected()),this,SLOT(ConnectError()));
     Serial = 0;
     //my_syspam.device_id = ConfigFIleGet("client_syspam","device_id").toInt();
 
@@ -42,9 +43,18 @@ void client::ConnectSuccess(void)
     ConfigFIleSet("client_syspam","device_id",my_syspam.device_id);
 }
 
-void client::ConnectToHost(QString ip,qint32 port,qint32 dev_id)
+void client::ConnectError()
+{
+    qWarning("connect Error");
+    mSignUpFlag = false;
+    socket->abort();
+    socket->connectToHost(my_syspam.ip,my_syspam.port);
+}
+
+void client::ConnectToHost(QString ip,uint32 port,uint32 dev_id)
 {
     my_syspam.ip = ip;
+
     my_syspam.port = port;
     my_syspam.device_id = dev_id;
     socket->abort();
@@ -118,7 +128,7 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
                         break;
                     case 13://车辆分布位置
                         {
-                            qWarning()<<"cmd car pos!";//<<data;
+                            //qWarning()<<"cmd car pos!";//<<data;
                             QStringList Data_buf;
 
                             Data_buf = data_list.at(5).split(SINGAL_VEHICLE_END);  // 通过</line>分解字符串
@@ -149,92 +159,106 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
                     {
                         qWarning("cmd bulletin ");
                         //qWarning()<<data;
-                        QStringList Data_buf;
-                        QStringList msg_buf;
-                        Msg msg;
-                        QString end;
-                        int16_t star_index = 0, end_index = 0;
-                        star_index = data.indexOf("<msg ");
-                        if(star_index < 0)
-                            break;
-                        end_index = data.indexOf("</msg>",star_index);
-                        end = "</msg>";
-                        if(end_index < 0) {  // 格式不正确
-                            end_index = data.indexOf("/>",star_index);
-                            end = "/>";
-                            if(end_index < 0)
-                            break;
-                        }
-                        data = data.mid(star_index, end_index-star_index);
-                        Data_buf = data.split(end);  // 通过</msg>分解字符串
-                        for(uint16_t i = 0; i < Data_buf.length(); i++) {
-                            msg_buf = Data_buf.at(i).split("\"");
-                            if(msg_buf.length() < 11)
+                        while(1) {
+                            QStringList data_list;
+                            QString data_buf;
+                            QStringList msg_buf;
+                            Msg msg;
+                            QString end;
+                            int16_t star_index = 0, end_index = 0;
+                            star_index = data.indexOf("<msg ");
+                            if(star_index < 0)
                                 break;
-                            msg.type = msg_buf.at(1);
-                            msg.bgdate = msg_buf.at(3);
-                            msg.enddate = msg_buf.at(5);
-                            msg.bgtime = msg_buf.at(7);
-                            msg.endtime = msg_buf.at(9);
-                            msg.value = msg_buf.at(11);
-                         //   qWarning()<<"msg.value: "<<msg.value;
-                            msg_list.append(msg);
-                            emit to_ui_bulletin(msg);
+                            end_index = data.indexOf("</msg>",star_index);
+                            end = "</msg>";
+                            if(end_index < 0) {  // 格式不正确
+                                end_index = data.indexOf("/>",star_index);
+                                end = "/>";
+                                if(end_index < 0)
+                                break;
+                            }
+                            data_buf = data.mid(star_index, end_index-star_index);
+                            data.remove(star_index, end_index-star_index);
+                            data_list = data_buf.split(end);  // 通过</msg>分解字符串
+                            QDateTime dateTime;
+                            for(uint16_t i = 0; i < data_list.length(); i++) {
+                                msg_buf = data_list.at(i).split("\"");
+                                if(msg_buf.length() < 11)
+                                    break;
+                                msg.type = msg_buf.at(1);
+    //                            msg.bgdate = msg_buf.at(3);
+    //                            msg.enddate = msg_buf.at(5);
+    //                            msg.bgtime = msg_buf.at(7);
+    //                            msg.endtime = msg_buf.at(9);
+                                msg.value = msg_buf.at(11);
+                                msg.star_sec = dateTime.fromString(msg_buf.at(3)+" "+msg_buf.at(7),
+                                                                   "yyyy-MM-dd hh:mm:ss").toTime_t();
+                                msg.end_sec = dateTime.fromString(msg_buf.at(5)+" "+msg_buf.at(9),
+                                                                  "yyyy-MM-dd hh:mm:ss").toTime_t();
+                             //   qWarning()<<"msg.value: "<<msg.value;
+                                msg_list.append(msg);
+                            }
+                            //emit to_ui_bulletin(msg_list);
                         }
                         break;
                     }
                     case 8://下发命令
                     qWarning("cmd down cmd");
+
                         QString cmd;
-                        cmd = data_list.at(5).mid(0,procotol_struct.data_length);
+                        cmd = data_list.at(5);//.mid(0,procotol_struct.data_length);
+
+                       // qWarning()<<cmd;
                        // command_handle(cmd);
                         if(!cmd.compare(CMD_RESTSRT)) {  // 重启
                             qWarning("reboot");
-                            //system("reboot");
-                            SendOK_Response(ANSWER_SERVICE2CLIENT, 0,procotol_struct.command_serial);
+                            system("reboot");
+                            SendCmd_Response(0,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_CLOSE)) {  // 关机
                             qWarning("poweroff");
                             //system("poweroff");
-                            SendOK_Response(ANSWER_SERVICE2CLIENT, 1,procotol_struct.command_serial);
+                            SendCmd_Response(1,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_LIGHT_ON)) {  // 开灯
                             qWarning("CMD_LIGHT_ON");
-                            SendOK_Response(ANSWER_SERVICE2CLIENT, 2,procotol_struct.command_serial);
+                            system(BACK_LED1_ON);
+                            SendCmd_Response(2,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_LIGHT_OFF)) {  // 关灯
+                            system(BACK_LED1_OFF);
                             qWarning("CMD_LIGHT_OFF");
-                            SendOK_Response(ANSWER_SERVICE2CLIENT, 3,procotol_struct.command_serial);
+                            SendCmd_Response(3,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_UPDATE_SET)) {  // 更新设置
                             qWarning("CMD_UPDATE_SET");
-                            SendOK_Response(ANSWER_SERVICE2CLIENT, 5,procotol_struct.command_serial);
+                            SendCmd_Response(5,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_UPDATE_PRO)) {  // 更新节目
                             qWarning("CMD_UPDATE_PRO");
                             //emit update_program();
-                            SendOK_Response(ANSWER_SERVICE2CLIENT, 4,procotol_struct.command_serial);
+                            SendCmd_Response(4,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_UPDATE_LINE)) {  // 更新线路
                             qWarning("CMD_UPDATE_LINE");
                             emit http_command(UPDATE_LINE_HTTP);
-                            SendOK_Response(ANSWER_SERVICE2CLIENT, 6,procotol_struct.command_serial);
+                            SendCmd_Response(6,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_UPDATE_FILE)) {  // 软件升级
                             qWarning("CMD_UPDATE_FILE");
 
-                            SendOK_Response(ANSWER_SERVICE2CLIENT, 7,procotol_struct.command_serial);
+                            SendCmd_Response(7,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_SCREENSHOT_ON)) {  // 截屏开
                             qWarning("CMD_SCREENSHOT_ON");
 
-                            SendOK_Response(ANSWER_SERVICE2CLIENT, 10,procotol_struct.command_serial);
+                            SendCmd_Response(10,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_SCREENSHOT_OFF)) {  // 截屏关
                             qWarning("CMD_SCREENSHOT_OFF");
 
-                            SendOK_Response(ANSWER_SERVICE2CLIENT, 11,procotol_struct.command_serial);
+                            SendCmd_Response(11,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_LIGHT_LOW)) {  // 背光 低
                             qWarning("CMD_LIGHT_LOW");
                             system(BACK_LED1_OFF);
                             system(BACK_LED2_OFF);
-                            SendOK_Response(ANSWER_SERVICE2CLIENT, 12,procotol_struct.command_serial);
+                            SendCmd_Response(12,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_LIGHT_MED)) {  // 背光 中
                             qWarning("CMD_LIGHT_MED");
                             system(BACK_LED1_ON);
                             system(BACK_LED2_OFF);
-                            SendOK_Response(ANSWER_SERVICE2CLIENT, 13,procotol_struct.command_serial);
+                            SendCmd_Response(13,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_LIGHT_HIG)) {  // 背光 高
                             qWarning("CMD_LIGHT_HIG");
                             system(BACK_LED1_ON);
@@ -243,23 +267,23 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
                         } else if(!cmd.compare(CMD_SCREE_ON)) {  // 屏幕 开
                             qWarning("CMD_SCREE_ON");
 
-                            SendOK_Response(ANSWER_SERVICE2CLIENT, 20,procotol_struct.command_serial);
+                            SendCmd_Response(20,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_SCREE_OFF)) {  // 屏幕 关
                             qWarning("CMD_SCREE_OFF");
 
-                            SendOK_Response(ANSWER_SERVICE2CLIENT, 21,procotol_struct.command_serial);
+                            SendCmd_Response(21,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_TEST_ON)) {  // 测试模式开
                             qWarning("CMD_TEST_ON");
 
-                            SendOK_Response(ANSWER_SERVICE2CLIENT, 25,procotol_struct.command_serial);
+                            SendCmd_Response(25,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_TEST_OFF)) {  // 测试模式关
                             qWarning("CMD_TEST_OFF");
 
-                            SendOK_Response(ANSWER_SERVICE2CLIENT, 26,procotol_struct.command_serial);
+                            SendCmd_Response(26,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_GET_PARA)) {  // 获取初始化参数
                             qWarning("CMD_GET_PARA");
                             emit http_command(GET_INI_HTTP);
-                            SendOK_Response(ANSWER_SERVICE2CLIENT, 35,procotol_struct.command_serial);
+                            SendCmd_Response(35,procotol_struct.command_serial);
                         }
                         break;
                 }
@@ -293,23 +317,41 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
 void client::SendOK_Response(qint8 direction, qint16 name, qint16 serial)  //  应答OK
 {
     QString SendData;
-    SendData.append(HEADER);
-    SendData.append(",");
+//    SendData.append(HEADER);
+//    SendData.append(",");
     SendData.append(QString::number(direction));
     SendData.append(",");
     SendData.append(QString::number(name));
     SendData.append(",");
     SendData.append(QString::number(serial));
-    SendData.append(",2,OK,");
-    SendData.append(END);
-    socket->write(SendData.toLatin1());
+    SendData.append("2,OK");
+ //   SendData.append(END);
+    send(SendData.toLatin1());
 }
 
+void client::SendCmd_Response(uint8 cmd_value, uint16 serial) {
+    QString SendData;
+//    SendData.append(HEADER);
+//    SendData.append(",");
+    SendData.append(QString::number(3));
+    SendData.append(",");
+    SendData.append(QString::number(8));
+    SendData.append(",");
+    SendData.append(QString::number(serial));
+    SendData.append(",");
+    SendData.append(QString::number(QString::number(cmd_value).size()));
+    SendData.append(",");
+    SendData.append(QString::number(cmd_value));
+//    SendData.append(",");
+ //   SendData.append(END);
+    send(SendData.toLatin1());
+}
 void client::AddVehicleLocationTolist(QString data)  // 获取线路状态
 {
  //   qWarning("222AddVehicleLocationTolist");
     vehicle_localtion my_vehicle_localtion;
     //vehicle_list.push_back(Head);
+//    qWarning()<<data;
     QString unicode =  data.section("\"",1,1);//截取线路名称
     if(unicode.right(1) == "路"){//检测到“路”
         my_vehicle_localtion.vehicle_name = unicode.left(unicode.count() - 1);
@@ -386,72 +428,74 @@ void client::clientHeartbeat() // 终端心跳
     QString pack;
     QString InkInfo;
     BatteryPara batteryPara;
-    qWarning("clientHeartbeat");
-    send_data.append(HEADER);
-    send_data.append(",0,-1,");
-    Serial++;
-    send_data.append(QString::number(Serial));
-    send_data.append(",");
-    pack.append("<?xml version=\"1.0\" encoding=\"utf-8\"?><root>");
-    pack.append("<stationId>"+ QString::number(my_syspam.device_id) +"</stationId>");
-    pack.append("<playingItem>0</playingItem><temperature><lcd>0</lcd><box>0</box></temperature>");
-    pack.append("<humidity><lcd>0</lcd><box>0</box></humidity><bootState></bootState><fans>0</fans>");
-    pack.append("<accessControl>0</accessControl><volume>0</volume><illumination>0</illumination><TTS></TTS>");
-    pack.append("<waterLevel></waterLevel><av></av><ac></ac><ap></ap><ate></ate><led></led><lumia></lumia>");
-    pack.append("<heater></heater><dvr></dvr><camera></camera><router4g></router4g></root>");
+    if(isConnected()) {
+        qWarning("clientHeartbeat");
+//        send_data.append(HEADER);
+        send_data.append("0,-1,");
+        Serial++;
+        send_data.append(QString::number(Serial));
+        send_data.append(",");
+        pack.append("<?xml version=\"1.0\" encoding=\"utf-8\"?><root>");
+        pack.append("<stationId>"+ QString::number(my_syspam.device_id) +"</stationId>");
+        pack.append("<playingItem>0</playingItem><temperature><lcd>0</lcd><box>0</box></temperature>");
+        pack.append("<humidity><lcd>0</lcd><box>0</box></humidity><bootState></bootState><fans>0</fans>");
+        pack.append("<accessControl>0</accessControl><volume>0</volume><illumination>0</illumination><TTS></TTS>");
+        pack.append("<waterLevel></waterLevel><av></av><ac></ac><ap></ap><ate></ate><led></led><lumia></lumia>");
+        pack.append("<heater></heater><dvr></dvr><camera></camera><router4g></router4g></root>");
 
-    if(batteryPara.dayOrNight.compare("-1"))  // 如果值不等于-1
-        InkInfo.append("<dayOrNight>"+ batteryPara.dayOrNight +"</dayOrNight>");
-    if(batteryPara.arrayVoltage.compare("-1"))  // 如果值不等于-1
-        InkInfo.append("<arrayVoltage>"+ batteryPara.arrayVoltage +"</arrayVoltage>");
-    if(batteryPara.arrayCurrent.compare("-1"))  // 如果值不等于-1
-        InkInfo.append("<arrayCurrent>"+ batteryPara.arrayCurrent +"</arrayCurrent>");
-    if(batteryPara.arrayPower.compare("-1"))  // 如果值不等于-1
-        InkInfo.append("<arrayPower>"+ batteryPara.arrayPower +"</arrayPower>");
-    if(batteryPara.voltage.compare("-1"))  // 如果值不等于-1
-        InkInfo.append("<voltage>"+ batteryPara.voltage +"</voltage>");
-    if(batteryPara.current.compare("-1"))  // 如果值不等于-1
-        InkInfo.append("<current>"+ batteryPara.current +"</current>");
-    if(batteryPara.arrayCurrent.compare("-1"))  // 如果值不等于-1
-        InkInfo.append("<power>"+ batteryPara.power +"</power>");
-    if(batteryPara.batteryTemperature.compare("-1"))  // 如果值不等于-1
-        InkInfo.append("<batteryTemperature>"+ batteryPara.batteryTemperature +"</batteryTemperature>");
-    if(batteryPara.temperature.compare("-1"))  // 如果值不等于-1
-        InkInfo.append("<temperature>"+ batteryPara.temperature +"</temperature>");
-    if(batteryPara.batteryPower.compare("-1"))  // 如果值不等于-1
-        InkInfo.append("<batteryPower>"+ batteryPara.batteryPower +"</batteryPower>");
-    if(batteryPara.batteryVoltage.compare("-1"))  // 如果值不等于-1
-        InkInfo.append("<batteryVoltage>"+ batteryPara.batteryVoltage +"</batteryVoltage>");
-    if(batteryPara.maxVoltage.compare("-1"))  // 如果值不等于-1
-        InkInfo.append("<maxVoltage>"+ batteryPara.maxVoltage +"</maxVoltage>");
-    if(batteryPara.dayPowerDischarge.compare("-1"))  // 如果值不等于-1
-        InkInfo.append("<dayPowerDischarge>"+ batteryPara.dayPowerDischarge +"</dayPowerDischarge>");
-    if(batteryPara.monthPowerDischarge.compare("-1"))  // 如果值不等于-1
-        InkInfo.append("<monthPowerDischarge>"+ batteryPara.monthPowerDischarge +"</monthPowerDischarge>");
-    if(batteryPara.yearPowerDischarge.compare("-1"))  // 如果值不等于-1
-        InkInfo.append("<yearPowerDischarge>"+ batteryPara.yearPowerDischarge +"</yearPowerDischarge>");
-    if(batteryPara.totalPowerDischarge.compare("-1"))  // 如果值不等于-1
-        InkInfo.append("<totalPowerDischarge>"+ batteryPara.totalPowerDischarge +"</totalPowerDischarge>");
-    if(batteryPara.dayPowerCharge.compare("-1"))  // 如果值不等于-1
-        InkInfo.append("<dayPowerCharge>"+ batteryPara.dayPowerCharge +"</dayPowerCharge>");
-    if(batteryPara.monthPowerCharge.compare("-1"))  // 如果值不等于-1
-        InkInfo.append("<monthPowerCharge>"+ batteryPara.monthPowerCharge +"</monthPowerCharge>");
-    if(batteryPara.yearPowerCharge.compare("-1"))  // 如果值不等于-1
-        InkInfo.append("<yearPowerCharge>"+ batteryPara.yearPowerCharge +"</yearPowerCharge>");
-    if(batteryPara.totalPowerCharge.compare("-1"))  // 如果值不等于-1
-        InkInfo.append("<totalPowerCharge>"+ batteryPara.totalPowerCharge +"</totalPowerCharge>");
-    if(batteryPara.batteryVoltage.compare("-1"))  // 如果值不等于-1
-        InkInfo.append("<batteryVoltage>"+ batteryPara.batteryVoltage +"</batteryVoltage>");
-    if(batteryPara.batteryCurrent.compare("-1"))  // 如果值不等于-1
-        InkInfo.append("<batteryCurrent>"+ batteryPara.batteryCurrent +"</batteryCurrent>");
+        if(batteryPara.dayOrNight.compare("-1"))  // 如果值不等于-1
+            InkInfo.append("<dayOrNight>"+ batteryPara.dayOrNight +"</dayOrNight>");
+        if(batteryPara.arrayVoltage.compare("-1"))  // 如果值不等于-1
+            InkInfo.append("<arrayVoltage>"+ batteryPara.arrayVoltage +"</arrayVoltage>");
+        if(batteryPara.arrayCurrent.compare("-1"))  // 如果值不等于-1
+            InkInfo.append("<arrayCurrent>"+ batteryPara.arrayCurrent +"</arrayCurrent>");
+        if(batteryPara.arrayPower.compare("-1"))  // 如果值不等于-1
+            InkInfo.append("<arrayPower>"+ batteryPara.arrayPower +"</arrayPower>");
+        if(batteryPara.voltage.compare("-1"))  // 如果值不等于-1
+            InkInfo.append("<voltage>"+ batteryPara.voltage +"</voltage>");
+        if(batteryPara.current.compare("-1"))  // 如果值不等于-1
+            InkInfo.append("<current>"+ batteryPara.current +"</current>");
+        if(batteryPara.arrayCurrent.compare("-1"))  // 如果值不等于-1
+            InkInfo.append("<power>"+ batteryPara.power +"</power>");
+        if(batteryPara.batteryTemperature.compare("-1"))  // 如果值不等于-1
+            InkInfo.append("<batteryTemperature>"+ batteryPara.batteryTemperature +"</batteryTemperature>");
+        if(batteryPara.temperature.compare("-1"))  // 如果值不等于-1
+            InkInfo.append("<temperature>"+ batteryPara.temperature +"</temperature>");
+        if(batteryPara.batteryPower.compare("-1"))  // 如果值不等于-1
+            InkInfo.append("<batteryPower>"+ batteryPara.batteryPower +"</batteryPower>");
+        if(batteryPara.batteryVoltage.compare("-1"))  // 如果值不等于-1
+            InkInfo.append("<batteryVoltage>"+ batteryPara.batteryVoltage +"</batteryVoltage>");
+        if(batteryPara.maxVoltage.compare("-1"))  // 如果值不等于-1
+            InkInfo.append("<maxVoltage>"+ batteryPara.maxVoltage +"</maxVoltage>");
+        if(batteryPara.dayPowerDischarge.compare("-1"))  // 如果值不等于-1
+            InkInfo.append("<dayPowerDischarge>"+ batteryPara.dayPowerDischarge +"</dayPowerDischarge>");
+        if(batteryPara.monthPowerDischarge.compare("-1"))  // 如果值不等于-1
+            InkInfo.append("<monthPowerDischarge>"+ batteryPara.monthPowerDischarge +"</monthPowerDischarge>");
+        if(batteryPara.yearPowerDischarge.compare("-1"))  // 如果值不等于-1
+            InkInfo.append("<yearPowerDischarge>"+ batteryPara.yearPowerDischarge +"</yearPowerDischarge>");
+        if(batteryPara.totalPowerDischarge.compare("-1"))  // 如果值不等于-1
+            InkInfo.append("<totalPowerDischarge>"+ batteryPara.totalPowerDischarge +"</totalPowerDischarge>");
+        if(batteryPara.dayPowerCharge.compare("-1"))  // 如果值不等于-1
+            InkInfo.append("<dayPowerCharge>"+ batteryPara.dayPowerCharge +"</dayPowerCharge>");
+        if(batteryPara.monthPowerCharge.compare("-1"))  // 如果值不等于-1
+            InkInfo.append("<monthPowerCharge>"+ batteryPara.monthPowerCharge +"</monthPowerCharge>");
+        if(batteryPara.yearPowerCharge.compare("-1"))  // 如果值不等于-1
+            InkInfo.append("<yearPowerCharge>"+ batteryPara.yearPowerCharge +"</yearPowerCharge>");
+        if(batteryPara.totalPowerCharge.compare("-1"))  // 如果值不等于-1
+            InkInfo.append("<totalPowerCharge>"+ batteryPara.totalPowerCharge +"</totalPowerCharge>");
+        if(batteryPara.batteryVoltage.compare("-1"))  // 如果值不等于-1
+            InkInfo.append("<batteryVoltage>"+ batteryPara.batteryVoltage +"</batteryVoltage>");
+        if(batteryPara.batteryCurrent.compare("-1"))  // 如果值不等于-1
+            InkInfo.append("<batteryCurrent>"+ batteryPara.batteryCurrent +"</batteryCurrent>");
 
-    pack.append("<inkScreen>"+InkInfo+"</inkScreen>");
-    send_data.append(QString::number(pack.length()));   // 长度
-    send_data.append(",");
-    send_data.append(pack);
-    send_data.append(",");
-    send_data.append(END);
-    socket->write(send_data.toLatin1());
+        pack.append("<inkScreen>"+InkInfo+"</inkScreen>");
+        send_data.append(QString::number(pack.length()));   // 长度
+        send_data.append(",");
+        send_data.append(pack);
+//        send_data.append(",");
+//        send_data.append(END);
+        send(send_data.toLatin1());
+    }
 //    qWarning()<<"send:"<<send_data;
 }
 
@@ -461,8 +505,8 @@ void client::clientSignUp()
     qWarning("clientSignUp");
     QString send_data;
     QString pack;
-    send_data.append(HEADER);
-    send_data.append(",0,1,");  //  方向+命令
+//    send_data.append(HEADER);
+    send_data.append("0,1,");  //  方向+命令
     Serial++;
     send_data.append(QString::number(Serial));  //
     send_data.append(",");
@@ -472,9 +516,9 @@ void client::clientSignUp()
     send_data.append(QString::number(pack.length()));   // 长度
     send_data.append(",");
     send_data.append(pack);
-    send_data.append(",");
-    send_data.append(END);
-    socket->write(send_data.toLatin1());
+//    send_data.append(",");
+//    send_data.append(END);
+    send(send_data.toLatin1());
  //   qWarning()<<"send:"<<send_data;
 }
 
@@ -565,4 +609,11 @@ bool client::isConnected()
        // socketConnect(true);
         return true;
     }
+}
+
+void client::send(QByteArray data) {
+    if(!isConnected())
+        return;
+    data = QString(HEADER).toLatin1() + "," + data + "," + QString(END).toLatin1();
+    socket->write(data);
 }

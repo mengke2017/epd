@@ -57,6 +57,9 @@ void ChildLine::create_line(QString id, int8_t current_index, int8_t station_tot
     StationNmae* stat_name;
     int16_t dist = 0;
     int xpos = 0;
+    QString time = timeS;
+//    if(!summerFlag)
+//        time =  timeE;
     if(station_total > 25)
         station_total = 25;   // 最多25个站点
     if(station_total > 1) {
@@ -86,7 +89,7 @@ void ChildLine::create_line(QString id, int8_t current_index, int8_t station_tot
         }
     }
     update_line_id(id);
-    update_info(timeS.mid(0,5), timeS.mid(7,5), price);
+    update_info(time.mid(0,5), time.mid(7,5), price);
 }
 
 void ChildLine::line_list_clear()

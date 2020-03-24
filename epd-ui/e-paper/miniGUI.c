@@ -87,7 +87,8 @@ static void DrawRGBdata(uint16_t Xpos, uint16_t Ypos,uint16_t Width, uint16_t Hi
 	}
 }
 
-uint8_t Show_linuxfb(uint32_t x, uint32_t y) {
+uint8_t
+Show_linuxfb(uint32_t x, uint32_t y) {
     static int fp=0;
     static int flag = 0;
     static struct fb_var_screeninfo vinfo;
@@ -129,9 +130,9 @@ uint8_t Show_linuxfb(uint32_t x, uint32_t y) {
         }
         }
 //    bmp_BitCount = vinfo.bits_per_pixel;
-
-/////    DrawRGBdata(x, y, vinfo.xres, vinfo.yres, (uint8_t*)bits);
-
+#if LINUX_32BIT
+    DrawRGBdata(x, y, vinfo.xres, vinfo.yres, (uint8_t*)bits);
+#endif
     flag = 1;
     if(strncmp((int8_t*)bits, (int8_t*)old_buf, finfo.smem_len/2) != 0) {
         strncpy((int8_t*)old_buf, (int8_t*)bits, finfo.smem_len/2);

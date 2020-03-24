@@ -20,6 +20,7 @@ private:
     serial           *serial_2;
     http             *http_client;
     QTimer           *timer;
+    void WeatherRequest();
 //    BatteryManager   *battery;
 signals:
     void update_status(QString,QString,QList<qint8>);
@@ -31,9 +32,9 @@ signals:
 public slots:
     void ReadVehicleLocation(void);
     void start(void);
-    void WeatherRequest();
+    void serTimerOut(uint current_sec);
     void ui_handle(int);
-    void ui_bulletin(Msg);
+//    void ui_bulletin(QList<Msg>);
 };
 
 #endif // BACKSTAGEMANAGER_H

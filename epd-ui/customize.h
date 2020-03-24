@@ -120,10 +120,12 @@ typedef struct {
 
 typedef struct {
     QString type;
-    QString bgdate;
-    QString enddate;
-    QString bgtime;
-    QString endtime;
+//    QString bgdate;
+//    QString enddate;
+//    QString bgtime;
+//    QString endtime;
+    uint star_sec;
+    uint end_sec;
     QString value;
 } Msg;
 

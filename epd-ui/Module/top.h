@@ -32,12 +32,17 @@ public:
 
     QList<QString> weath_list_ico;
     QList<QString> weath_list_text;
+
+    QString current_date;
+    QString current_time;
 public:
     void showall();
     void updateStat_name(QString);
     void updateWeather(QString  weather, QString temp);
     void updateDate(QString, QString);
     void updateTime(QString);
+signals:
+    void timeover(uint);
 //private:
 //    void initwidget(QWidget *widget, QString name, bool enabled, QRect rect, QFont font, QString stylesheet);
 //    void initlabel(QLabel *label,  QString name, bool enabled, QRect rect, QFont font,

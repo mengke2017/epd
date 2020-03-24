@@ -11,6 +11,7 @@
 #include<QByteArray>
 #include<QMutex>
 #include<QSocketNotifier>
+#include "customize.h"
 //#include <QSocketNotifier>
 //#include <linux/fs.h>
 //#include<fcntl.h>
@@ -102,7 +103,7 @@ public:
     QByteArray readData();
     static serial * serialInt();
 signals:
-    void hasdata(QString ip,qint32 port,qint32 dev_id);
+    void hasdata(QString ip,uint32 port,uint32 dev_id);
     void BatteryHasData(void);
 public slots:
     void remoteDateInComing();

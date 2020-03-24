@@ -161,8 +161,8 @@ void serial::remoteDateInComing()
     int recive_data_len = 0;
     QString buf_string;
     QString ip_tcp;
-    qint32 port_tcp;
-    qint32 dev_id_tcp;
+    uint32 port_tcp = 0;
+    uint32 dev_id_tcp = 0;
     QString str_data;
     mutex.lock();
     if(fd != -1){

@@ -11,6 +11,8 @@
 #include <QTimer>
 #include "fileutils.h"
 #include "customize.h"
+#include "systemutils.h"
+
 //#include <iostream>
 #define HEADER                  "$GPRS"
 #define END                     "$END$"
@@ -23,15 +25,25 @@
 #define SINGAL_VEHICLE_END      "</line>" //单独一条线路的结尾
 #define SPLIT_CHAR              "vehicle "
 
-#define BACK_LED1_CFG /* "echo \"1\" > /sys/class/gpio_sw/PC22/cfg\n"*/ " "
-#define BACK_LED2_CFG /* "echo \"1\" > /sys/class/gpio_sw/PC21/cfg\n"*/ " "
+#if 1
+#define BACK_LED1_CFG " "
+#define BACK_LED2_CFG " "
 
-#define BACK_LED1_ON  /*"echo \"1\" > /sys/class/gpio_sw/PC22/data\n"*/ " "
-#define BACK_LED1_OFF /*"echo \"0\" > /sys/class/gpio_sw/PC22/data\n"*/ " "
+#define BACK_LED1_ON  " "
+#define BACK_LED1_OFF " "
 
-#define BACK_LED2_ON  /*"echo \"1\" > /sys/class/gpio_sw/PC21/data\n"*/ " "
-#define BACK_LED2_OFF /*"echo \"0\" > /sys/class/gpio_sw/PC21/data\n"*/ " "
+#define BACK_LED2_ON  " "
+#define BACK_LED2_OFF " "
+#else
+#define BACK_LED1_CFG "echo \"1\" > /sys/class/gpio_sw/PC22/cfg\n"
+#define BACK_LED2_CFG "echo \"1\" > /sys/class/gpio_sw/PC21/cfg\n"
 
+#define BACK_LED1_ON  "echo \"1\" > /sys/class/gpio_sw/PC22/data\n"
+#define BACK_LED1_OFF "echo \"0\" > /sys/class/gpio_sw/PC22/data\n"
+
+#define BACK_LED2_ON  "echo \"1\" > /sys/class/gpio_sw/PC21/data\n"
+#define BACK_LED2_OFF "echo \"0\" > /sys/class/gpio_sw/PC21/data\n"
+#endif
 
 #define CMD_RESTSRT         "restart"
 #define CMD_CLOSE           "close"
@@ -98,8 +110,10 @@ public:
 private:
     void TCPsocket_Protocol(QByteArray DataBuf);
     void SendOK_Response(qint8 direction,qint16 name,qint16 serial);
+    void SendCmd_Response(uint8 cmd_value, uint16 serial);
     void AddVehicleLocationTolist(QString data);
-    void get_version();    
+    void get_version();
+    void send(QByteArray data);
   //  void command_handle(QString com);
     QTimer *timer;
     QTcpSocket    *socket;
@@ -118,13 +132,14 @@ signals:
     void veh_data_re();
     void get_initpara();
     void http_command(int);
-    void to_ui_bulletin(Msg);
+    void to_ui_bulletin(QList<Msg>);
 private slots:
     void ReadMsg(void);
     void ConnectSuccess(void);
+    void ConnectError(void);
     void TimeOut();
 public slots:
-    void ConnectToHost(QString ip,qint32 port,qint32 dev_id);
+    void ConnectToHost(QString ip,uint32 port,uint32 dev_id);
 };
 
 #endif // CLIENT_H

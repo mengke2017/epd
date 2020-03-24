@@ -2,13 +2,14 @@
 #include "tcp/StationCommand.h"
 #include <signal.h>
 #include <QDebug>
+#include <QDateTime>
 
 #define SERIAL_PATH  "/dev/ttyS2"
 
 BackstageManager::BackstageManager(QObject *parent):
     QObject(parent)
 {
-    qRegisterMetaType<Msg>("Msg");
+   // qRegisterMetaType<Msg>("Msg");
     start();
 }
 
@@ -16,12 +17,12 @@ void BackstageManager::start()
 {
     serial_2 = new serial();
     tcp_client = client::getInstance();
-    timer = new QTimer();
+//    timer = new QTimer();
 
-    connect(serial_2,SIGNAL(hasdata(QString,qint32,qint32)),tcp_client,SLOT(ConnectToHost(QString,qint32,qint32)));
+    connect(serial_2,SIGNAL(hasdata(QString,uint32,uint32)),tcp_client,SLOT(ConnectToHost(QString,uint32,uint32)));
     connect(tcp_client,SIGNAL(veh_data_re()),this,SLOT(ReadVehicleLocation()));
-    connect(timer, SIGNAL(timeout()), this, SLOT(WeatherRequest()));
-    timer->start(10000);
+//    connect(timer, SIGNAL(timeout()), this, SLOT(timerOut()));
+//    timer->start(10000);
 
     client_syspam my_syspam;
 
@@ -34,7 +35,7 @@ void BackstageManager::start()
     http_client =  new http(QString::number(my_syspam.device_id));
     connect(tcp_client,SIGNAL(http_command(int)),http_client,SLOT(HttpPostRequest(int)));
     connect(http_client,SIGNAL(to_local(int)),this,SLOT(ui_handle(int)));
-    connect(tcp_client,SIGNAL(to_ui_bulletin(Msg)),this,SLOT(ui_bulletin(Msg)));
+//    connect(tcp_client,SIGNAL(to_ui_bulletin(QList<Msg>)),this,SLOT(ui_bulletin(QList<Msg>)));
     emit serial_2->hasdata(my_syspam.ip,my_syspam.port,my_syspam.device_id);  // 连接服务器
 }
 
@@ -51,25 +52,45 @@ void BackstageManager::ReadVehicleLocation()
     }
 }
 
+void BackstageManager::serTimerOut(uint current_sec)
+{
+    QList<Msg> list = tcp_client->msg_list;
+    static int16_t count = -1;
+    count++;
+    if (count >= 360 || count == 0) { // 10*36 hour
+//        qWarning("11111");
+        if(count == 0) {  // first
+            emit tcp_client->http_command(GET_INI_HTTP);
+            emit tcp_client->http_command(UPDATE_LINE_HTTP);
+            WeatherRequest();
+        }
+        WeatherRequest();
+        count = 0;
+    }
+
+    for(int i = 0; i < list.length(); i ++) {
+        if(list.at(i).star_sec <= current_sec && list.at(i).end_sec >= current_sec) {
+            emit update_bulletin(list.at(i).value);
+        }
+    }
+}
 void BackstageManager::WeatherRequest(void)
 {
-//    qWarning()<<"1111";
+//    qWarning()<<"2222";
 //    BatteryPara batteryPara;
 //    battery->ReadBatteryPara(&batteryPara);
     emit tcp_client->http_command(WEATHER_HTTP);
-//    qWarning()<<"11111";
+//    qWarning()<<"22222";
 //    sleep(1);
-//    emit tcp_client->http_command(UPDATE_LINE_HTTP);
+
 //    sleep(1);
     emit tcp_client->http_command(GET_SERVICE_TIME);
 //    qWarning()<<"111111";
-//    emit tcp_client->http_command(GET_INI_HTTP);
-    timer->stop();
+//    timer->stop();
 }
 
 void BackstageManager::ui_handle(int uiflag)
 {
-    qWarning("ui_handle");
     switch(uiflag)
     {
     case WEATHER_HTTP:
@@ -82,8 +103,4 @@ void BackstageManager::ui_handle(int uiflag)
         emit read_initpara();
         break;
     }
-}
-void BackstageManager::ui_bulletin(Msg msg)
-{
-    emit update_bulletin(msg.value);
 }

@@ -1,4 +1,4 @@
-#include "Module/top.h"
+﻿#include "Module/top.h"
 #include <QDateTime>
 #include <QTimer>
 
@@ -50,7 +50,7 @@ TopWidget::TopWidget()
 
     QTimer * timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(TimeUpdate()));//将定时器与TimeUpdate函数绑定
-    timer->start(100);//一秒计时一次
+    timer->start(5000);//一秒计时一次
 
     title_widget = new QWidget(top_widget);
     title_widget->setGeometry(QRect(0, 154, 1200, 80));
@@ -103,21 +103,20 @@ TopWidget::TopWidget()
 
 TopWidget::~TopWidget()
 {
-    delete top_widget;
-    delete stat_name;
-    delete weath_ico;
-    delete weath_text;
-    delete date_text;
-    delete time_label;
-
-    delete title_widget;
-    delete lineId_name;
-    delete line_info_name;
-    delete over_stat_name;
-
-
     weath_list_ico.clear();
     weath_list_text.clear();
+
+    delete top_widget;
+//    delete stat_name;
+//    delete weath_ico;
+//    delete weath_text;
+//    delete date_text;
+//    delete time_label;
+
+//    delete title_widget;
+//    delete lineId_name;
+//    delete line_info_name;
+//    delete over_stat_name;
 }
 
 void TopWidget::showall()
@@ -147,7 +146,7 @@ void TopWidget::updateWeather(QString weather, QString temp = "25")
 {
     uint16_t i = 0;
     QString ico;
-    weath_text->setText(weather + "\n" +temp+"℃");
+    weath_text->setText(weather + "\n" + temp + "℃");
     weath_text->update();
     for(i = 0; i < weath_list_text.length(); i++) {
         if(!weath_list_text.at(i).compare(weather)) {
@@ -193,9 +192,11 @@ void TopWidget::updateWeather(QString weather, QString temp = "25")
 void TopWidget::TimeUpdate()
 {
 //    static int i = -1;
+    uint i = QDateTime::currentDateTime().toTime_t();
+    emit timeover(i);
     QString  time = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm ddd");
-    QString current_date = time.mid(0,4) + "年" + time.mid(5,2) + "月" + time.mid(8,2);
-    QString current_time = time.mid(11,5);
+    current_date = time.mid(0,4) + "年" + time.mid(5,2) + "月" + time.mid(8,2);
+    current_time = time.mid(11,5);
     QString week = time.mid(17);
 
     if(week.at(0) == 'M') {
@@ -245,6 +246,5 @@ void TopWidget::TimeUpdate()
 //    default:
 //        i=-1;
 //    }
-
 
 }

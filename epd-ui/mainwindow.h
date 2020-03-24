@@ -64,6 +64,8 @@ private :
     void createChildpage(QList<PageInfo> page_info);
     void switchPage(int Index);
     void showNextPage(int page);
+    uint8 showMainpage();
+    uint8 showChildpage();
     QString read_xml_node(QString,QString,QString);
 public slots:
     void update_status_slot(QString,QString,QList<qint8>);

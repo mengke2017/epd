@@ -8,8 +8,8 @@
 #include <QDebug>
 #include <QDomDocument>
 
-#define MAX_LINE_COUNT_MAIN   9
-#define MAX_LINE_COUNT_CHILD  6
+#define MAX_LINE_COUNT_MAIN   9 //9
+#define MAX_LINE_COUNT_CHILD  5
 
 #define MAX_WIN_WIDTH         1200
 #define MAX_WIN_HIGTH         1600
@@ -55,6 +55,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     line_total = 0;
     connect(timer, SIGNAL(timeout()), this, SLOT(slotTimerOut()));
+    connect(top_widget, SIGNAL(timeover(uint)), service, SLOT(serTimerOut(uint)));
     timer->start(1000);
     ui->centralWidget->hide();
 
@@ -75,25 +76,20 @@ void MainWindow::slotTimerOut()
     static int i = -1;
 
     if(i == 1) {
-    //    showNextPage(MAIN_PAGE);
-        bot->hide();
-        top->show();
-        top->repaint();
+        showMainpage();
         i = 0;
         qWarning("bot");
     }  else if(i == 0){
-    //    showNextPage(MAIN_PAGE);
-        top->hide();
-        bot->show();
-        bot->repaint();
+        showChildpage();
         i = 1;
         qWarning("top");
     }
     if(i == -1){
         timer->stop();
-        read_initpara_xml();
-        read_lineinfo_xml();
-        top->show();
+       // read_initpara_xml();
+       // read_lineinfo_xml();
+       // top->show();
+       top_widget->timeover(0);
         i = 1;
         timer->start(10000);
         qWarning("init");
@@ -150,74 +146,83 @@ void MainWindow::createChildpage(QList<PageInfo> page_info)
     child_tail +=1;
 }
 
-//void MainWindow::switchPage(int Index)
-//{
-//    m_pStackedWidget->setCurrentIndex(Index);
-//}
-
-void MainWindow::showNextPage(int page) {
-    uint8_t i = 0;
-    static bool top_first = true, bot_first = true;
-    // 第一次进来 先显示 top
-
-    if(page == MAIN_PAGE) {
-        if(line_total <= mainpage_line_max ||  top_first == true) {
-            bot->hide();
-            top->show();
-            top_first = false;
-            return;
+uint8 MainWindow::showMainpage() {
+    static bool top_first = true;
+    uint8_t i =0;
+    if(line_total <= mainpage_line_max || top_first == true) {  // 一页就可以显示完
+        bot->hide();
+        top->show();
+        top_first = false;
+        if(line_total <= mainpage_line_max) {
+            return 0;
         }
-        if(main_tail < line_total && main_tail > mainpage_line_max) {  // 两页显示不下时，继续创建
-            for(i = main_tail; i < line_total && (i - main_tail) < mainpage_line_max; i++) {
-                mainpage_list.at(i-main_tail)->hide();
-                mainpage_list.at(i)->show();
-            }
-            main_tail = i;
-            // 显示top
-            bot->hide();
-            top->repaint();
-            top->show();
-        } else if (main_tail == line_total) {  // 如果创建到最后一个了，回到开头
-            for(uint8_t i = 0; i < mainpage_line_max; i++) {  // mainpage_line_max是大于mainpage_list.len的
-                mainpage_list.at(i)->show();
-                main_tail = i;
-            }
-            main_tail += 1;
-            for(uint8_t i = mainpage_line_max; i < line_total; i++) {
-                mainpage_list.at(i)->hide();
-            }
-//            // 显示bot
+    } else if(main_tail < line_total) {  // 两页显示不下时，继续创建
+        for(i = main_tail; i < line_total && (i - main_tail) < mainpage_line_max; i++) {
+            mainpage_list.at(i-main_tail)->hide();
+            mainpage_list.at(i)->show();
+        }
+        main_tail = i;
 //            top->repaint();
-//            top->hide();
-//            bot->show();
+        bot->hide();
+        top->show();
+        if(main_tail < line_total)
+            return 1;
+        else
+            return 0;
+    } else if (main_tail == line_total) {  // 如果创建到最后一个了，回到开头
+        for(uint8_t i = 0; i < mainpage_line_max; i++) {  // mainpage_line_max是大于mainpage_list.len的
+            mainpage_list.at(i)->show();
+            main_tail = i;
         }
-    } else if(page == CHILD_PAGE) {
-        if(line_total <= childpage_line_max ||  bot_first == true) {
-            top->hide();
-            bot->show();
-            bot_first = false;
-            return;
+        main_tail += 1;
+        for(uint8_t i = mainpage_line_max; i < line_total; i++) {
+            mainpage_list.at(i)->hide();
         }
-        if(child_tail < line_total && child_tail > mainpage_line_max) {  // 两页显示不下时，继续创建
-            for(i = child_tail; i < line_total && (i - child_tail) < childpage_line_max; i++) {
-                childpage_list.at(i-child_tail)->hide();
-                childpage_list.at(i)->show();
-            }
-            top->hide();
-            bot->repaint();
-            bot->show();
-            child_tail = i;
-        } else if (child_tail == line_total) {  // 如果创建到最后一个了，回到开头
-            for(uint8_t i = 0; i < childpage_line_max; i++) {  // mainpage_line_max是大于mainpage_list.len的
-                childpage_list.at(i)->show();
-                child_tail = i;
-            }
-            child_tail += 1;
-            for(uint8_t i = childpage_line_max; i < line_total; i++) {
-                childpage_list.at(i)->hide();
-            }
-        }
+       // top_first = true;
+        bot->hide();
+        top->show();
+        return 1;
     }
+    return 0;
+}
+
+uint8 MainWindow::showChildpage() {
+    static bool bot_first = true;
+    uint8_t i= 0;
+    if(line_total <= childpage_line_max ||  bot_first == true) {
+        top->hide();
+        bot->show();
+        bot_first = false;
+        if(line_total <= childpage_line_max)
+            return 0;
+    } else if(child_tail < line_total) {  // 两页显示不下时，继续创建
+        for(i = child_tail; i < line_total && (i - child_tail) < childpage_line_max; i++) {
+            childpage_list.at(i-child_tail)->hide();
+            childpage_list.at(i)->show();
+        }
+        child_tail = i;
+        top->hide();
+        bot->show();
+        if(child_tail < line_total)
+            return 1;
+        else
+            return 0;
+    } else if (child_tail == line_total) {  // 如果创建到最后一个了，回到开头
+        for(uint8_t i = 0; i < childpage_line_max; i++) {  // mainpage_line_max是大于mainpage_list.len的
+            childpage_list.at(i)->show();
+            child_tail = i;
+        }
+        child_tail += 1;
+        for(uint8_t i = childpage_line_max; i < line_total; i++) {
+            childpage_list.at(i)->hide();
+        }
+       // bot_first = true;
+      //  bot->repaint();
+        top->hide();
+        bot->show();
+        return 1;
+    }
+    return 0;
 }
 
 void MainWindow::update_status_slot(QString stat_id,QString count,QList<qint8> pos) {
@@ -232,7 +237,9 @@ void MainWindow::update_status_slot(QString stat_id,QString count,QList<qint8> p
     }
 }
 
-void MainWindow::update_bulletin_text(QString text) {
+void MainWindow::update_bulletin_text(QString text) {  //轮寻判断是否有公告，还有公告显示的时间
+    if(text.size() > 125)
+        text = text.mid(0,125);
     bullentin ->update_text("公告",text);
 }
 
@@ -344,6 +351,7 @@ void MainWindow::read_lineinfo_xml() {
 
     createChildpage(page_info);
     createMainpage(page_info);
+    slotTimerOut();
 }
 
 /*
@@ -368,6 +376,9 @@ void MainWindow::read_weather_xml() {
     str = codeC->toUnicode(byte.data());
     star_index = str.indexOf("weather value");
     end_index = str.indexOf("/root");
+    if(star_index < 0 || end_index < 0) {
+        return;
+    }
     str = str.mid(star_index,end_index-star_index);
     list = str.split("\"");
 
@@ -443,7 +454,8 @@ void MainWindow::read_initpara_xml() {
         para.black_count = list.at(index+1).toInt();
     }
     list.clear();
-    top_widget->updateStat_name(para.station_name);
+
+    top_widget->updateStat_name(para.station_name);  // 更新站点名
 }
 
 QString MainWindow::read_xml_node(QString xml, QString node, QString node_end) {  // 若node_end没有，则默认为"/>"

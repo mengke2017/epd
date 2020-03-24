@@ -5,7 +5,9 @@
 
 EPaper::EPaper()
 {
-    //init_device();
+#if LINUX_32BIT
+    init_device();
+#endif
 }
 
 //(2) run()重新实现
@@ -15,7 +17,8 @@ void EPaper::run()
     {
         int r;
         r = dis_epd(AUTO_MODE);
-        usleep(800000);//线程 睡眠一秒一次
-        qWarning("r = %d",r);
+        usleep(300000);//线程 睡眠一秒一次
+        if(r ==0)
+            qWarning("r = %d",r);
     }
 }

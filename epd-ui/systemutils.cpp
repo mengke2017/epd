@@ -254,11 +254,6 @@ void SystemUtils::escape(QByteArray *array,const char *s,int32 size,const char *
     }
 }
 
-//void SystemUtils::ledEscape(QByteArray *array,const char *s)
-//{
-
-//}
-
 QByteArray SystemUtils::getSystemVersion()
 {
     struct utsname uts;

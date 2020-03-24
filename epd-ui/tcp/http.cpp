@@ -12,7 +12,7 @@
 
 QSemaphore sem(1);
 
-#define HTTP_TIME 5000
+#define HTTP_TIME 100
 
 http::http(QString estationid)
 {
@@ -272,7 +272,7 @@ QByteArray http::Bzip2DataHandle(QByteArray data)
         BZ2_bzDecompressEnd(&bz_uncompress);
         line_file.close();
     }
- //   qWarning("to_local");
+   // qWarning("to_local");
     emit to_local(http_command);
     QByteArray bzipUnomprData;
     return bzipUnomprData;
@@ -287,6 +287,7 @@ http *http::httpInt(QString estationid)
 void http::ReplyFinished(QNetworkReply *reply)
 {
     if(reply->error() == QNetworkReply :: NoError){
+ //       qWarning("ReplyFinished http_command: %d",http_command);
         QFile file("./http_data.xml");
         QByteArray byte = reply->readAll();
         FileUtils::StringToXML(&file, byte);
@@ -294,7 +295,8 @@ void http::ReplyFinished(QNetworkReply *reply)
     } else {
         qDebug()<<"reply error!";
     }
-    sem.release(1);
+//    if(sem.available() == 0)
+        sem.release(1);
     reply->deleteLater();
 }
 //
@@ -328,7 +330,8 @@ void http::_HttpPostRequest()
         return;
     }
     sem.acquire(1);
-    switch(command_list.last()){
+//    qWarning("send_http_command: %d",command_list.first());
+    switch(command_list.first()){
         case GET_INI_HTTP:
             estationid = Device_id;
             raw.Content_Type = "text/xml;charset=UTF-8";
@@ -389,5 +392,5 @@ void http::_HttpPostRequest()
             break;
     }
     if(!command_list.isEmpty())
-        command_list.removeLast();
+        command_list.removeFirst();
 }

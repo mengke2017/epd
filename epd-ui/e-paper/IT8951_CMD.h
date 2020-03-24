@@ -10,6 +10,8 @@ typedef unsigned char  uint8_t;
 typedef unsigned short uint16_t;
 typedef unsigned int   uint32_t;
 
+#define LINUX_32BIT  0
+
 #define SENSE_LEN		(256)
 #define BLOCK_LEN		(32)
 #define SCSI_TIMEOUT	(50000)
@@ -26,7 +28,7 @@ typedef unsigned int   uint32_t;
 #define IT8951_USB_OP_LD_IMG_AREA			(0xA2)
 #define IT8951_USB_OP_FSET_TEMP			(0xA4)
 #define IT8951_USB_OP_FAST_WRITE_MEM	(0xA5)
-	#define EN_FAST_WRITE_MEM
+#define EN_FAST_WRITE_MEM
 	
 typedef unsigned char Byte;
 typedef unsigned short Word;
