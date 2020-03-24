@@ -12,7 +12,6 @@
 #include "backstagemanager.h"
 #include "systemutils.h"
 #include "e-paper/e-paper.h"
-#include "battery/recv_thread.h"
 
 namespace Ui {
 class MainWindow;

@@ -21,7 +21,7 @@ private:
     http             *http_client;
     QTimer           *timer;
     void WeatherRequest();
-//    BatteryManager   *battery;
+    BatteryManger   *battery;
 signals:
     void update_status(QString,QString,QList<qint8>);
     void read_weather();

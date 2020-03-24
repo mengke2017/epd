@@ -23,6 +23,7 @@ void BackstageManager::start()
     connect(tcp_client,SIGNAL(veh_data_re()),this,SLOT(ReadVehicleLocation()));
 //    connect(timer, SIGNAL(timeout()), this, SLOT(timerOut()));
 //    timer->start(10000);
+    battery = new BatteryManger();
 
     client_syspam my_syspam;
 

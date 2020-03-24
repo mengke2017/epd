@@ -44,8 +44,8 @@ SOURCES += \
     systemutils.cpp \
     e-paper/e-paper.cpp \
     battery/batterymanager.cpp \
-    battery/recv_thread.cpp \
-    serial/uart.c
+    serial/uart.c \
+    battery/batterylist.cpp
 
 HEADERS += \
         mainwindow.h \
@@ -68,8 +68,8 @@ HEADERS += \
     systemutils.h \
     e-paper/e-paper.h \
     battery/batterymanager.h \
-    battery/recv_thread.h \
-    serial/uart.h
+    serial/uart.h \
+    battery/batterylist.h
 
 FORMS += \
         mainwindow.ui
