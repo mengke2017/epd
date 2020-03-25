@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui network xml
+QT       += core gui network xml serialport
 
 LIBS     += -L/usr/lib -lbz2
 
@@ -36,7 +36,6 @@ SOURCES += \
     e-paper/miniGUI.c \
     e-paper/IT8951_USB.c \
     e-paper/IT8951_CMD.c \
-    serial/serial.cpp \
     tcp/client.cpp \
     fileutils.cpp \
     Module/bulletin.cpp \
@@ -44,7 +43,6 @@ SOURCES += \
     systemutils.cpp \
     e-paper/e-paper.cpp \
     battery/batterymanager.cpp \
-    serial/uart.c \
     battery/batterylist.cpp
 
 HEADERS += \
@@ -58,7 +56,6 @@ HEADERS += \
     e-paper/miniGUI.h \
     e-paper/IT8951_USB.h \
     e-paper/IT8951_CMD.h \
-    serial/serial.h \
     tcp/client.h \
     fileutils.h \
     Module/bulletin.h \
@@ -68,7 +65,6 @@ HEADERS += \
     systemutils.h \
     e-paper/e-paper.h \
     battery/batterymanager.h \
-    serial/uart.h \
     battery/batterylist.h
 
 FORMS += \

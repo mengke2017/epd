@@ -14,7 +14,9 @@ bool serial::openPort(QString portName, BaudRateType baundRate, DataBitsType dat
         qDebug()<<"fd error!";
         return false;
     }
-    fd = open(portName.toLatin1(),O_RDWR|O_NONBLOCK);
+    rev_buf->clear();
+    memset(&NewSerialPar,0,sizeof NewSerialPar);
+    fd = ::open(portName.toLatin1(),O_RDWR|O_NONBLOCK);
     if(fd == -1){
         qDebug()<<"portName error!";
         return false;
@@ -189,7 +191,7 @@ void serial::remoteDateInComing()
                         dev_id_tcp = (buf_string.mid(3)).toInt();
                 }
             }
-            emit hasdata(ip_tcp,port_tcp,dev_id_tcp);
+            emit setIpPort(ip_tcp,port_tcp,dev_id_tcp);
         }else if(buf[0] == DEV_ID){//太阳能电池管理  0x7e既作为设备ID也可以作为帧头
             for(int i = 0;i < recive_data_len;i++){
                 rev_buf->append(buf[i]);
@@ -204,4 +206,5 @@ void serial::remoteDateInComing()
     }
     mutex.unlock();
 }
+
 

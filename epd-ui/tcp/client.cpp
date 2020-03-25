@@ -21,6 +21,8 @@ client::client(QObject *parent) :
 
     system(BACK_LED1_CFG);
     system(BACK_LED2_CFG);
+
+    battery = BatteryManger::getInstance();
     get_version();
 }
 client* client::getInstance()
@@ -427,7 +429,7 @@ void client::clientHeartbeat() // 终端心跳
     QString send_data;
     QString pack;
     QString InkInfo;
-    BatteryPara batteryPara;
+    BatteryPara batteryPara = battery->Battery_buffer;
     if(isConnected()) {
         qWarning("clientHeartbeat");
 //        send_data.append(HEADER);
@@ -496,7 +498,7 @@ void client::clientHeartbeat() // 终端心跳
 //        send_data.append(END);
         send(send_data.toLatin1());
     }
-//    qWarning()<<"send:"<<send_data;
+    qWarning()<<"send:"<<send_data;
 }
 
 void client::clientSignUp()
@@ -575,14 +577,14 @@ void client::TimeOut()
                     count = 0;
                 }
                 clientHeartbeat();
-                mHeartbeatTime = 6;   // 1分钟
+                mHeartbeatTime = 12;   // 1分钟
             }
         }
     } else {
         if(mSocketClientTime > 0) {
             mSocketClientTime -=1;
         } else {
-            mSocketClientTime = 12;  //  如果没有连接到服务器则每60秒重连一次
+            mSocketClientTime = 6;  //  如果没有连接到服务器则每60秒重连一次
             socket->abort();
             socket->connectToHost(my_syspam.ip,my_syspam.port);
         }

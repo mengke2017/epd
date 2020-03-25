@@ -9,6 +9,7 @@
 #include <list>
 #include <algorithm>
 #include <QTimer>
+#include "battery/batterymanager.h"
 #include "fileutils.h"
 #include "customize.h"
 #include "systemutils.h"
@@ -25,7 +26,7 @@
 #define SINGAL_VEHICLE_END      "</line>" //单独一条线路的结尾
 #define SPLIT_CHAR              "vehicle "
 
-#if 1
+#if 0
 #define BACK_LED1_CFG " "
 #define BACK_LED2_CFG " "
 
@@ -116,7 +117,8 @@ private:
     void send(QByteArray data);
   //  void command_handle(QString com);
     QTimer *timer;
-    QTcpSocket    *socket;
+    QTcpSocket    *socket;    
+    BatteryManger   *battery;
     QSettings     *TCP_set_file;
     QString       my_filename;
     list<vehicle_localtion> vehicle_list;

@@ -3,9 +3,10 @@
 
 #include <QObject>
 #include <QTimer>
-#include "serial/serial.h"
+//#include "serial/serialport.h"
 #include "battery/batterylist.h"
 #include <QSettings>
+#include <QSerialPort>
 
 #define DAY_OR_NIGHT              0
 
@@ -72,8 +73,8 @@
 #define CHARGE_MANAGER                   58//电池充放电管理模式
 
 
-#define NO_REPLY_DATA -2
-#define SAME_DATA     -1
+#define NO_REPLY_DATA 0xff
+#define SAME_DATA     0xff
 
 #define COMMAND_1    0
 #define COMMAND_2    1
@@ -81,7 +82,7 @@
 #define COMMAND_SUM  3
 
 #define TIMER_MSEC      10 //ms
-#define REPLY_OVERTIME  100//overtime of 2 sec
+#define REPLY_OVERTIME  100  //overtime of 2 sec
 #define OPEN            0
 #define CLOSE           1
 #define OVER_TIME       1
@@ -122,6 +123,7 @@ class BatteryManger : public QObject
 public:
     explicit BatteryManger(QObject *parent = 0);
     static BatteryManger* getInstance();
+    BatteryPara   Battery_buffer;
 private:
     volatile bool     SendSwitch;
     volatile quint16  LastAOrB;//判断上一次发送A指令还是B指令
@@ -132,7 +134,7 @@ private:
 
     QTimer*      Timer_Basic;
     QTimer*      Timer_Send;
-    serial*      BatterySerial;
+    QSerialPort*      BatterySerial;
     BatteryList* list;
     QSettings*   Battery_file;
 

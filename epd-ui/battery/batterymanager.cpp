@@ -4,6 +4,9 @@
 #include <QSemaphore>
 #include "customize.h"
 #include "systemutils.h"
+
+#define BATTERY_UART   "/dev/ttyS5"
+
 QSemaphore SendSem(4);
 quint8 OverTimeTab[BATTERY_PARA_NUM][2] =
 {
@@ -42,10 +45,31 @@ BatteryManger::BatteryManger(QObject *parent) :
 
     list = BatteryList::GetInstans();
 
-    BatterySerial = new serial();
-    QString name = "/dev/ttyS3";
-    BatterySerial->openPort(name,BAUD115200,DATA_8,PAR_NONE,STOP_1,FLOW_OFF,TIME_OUT);
-    connect(BatterySerial, SIGNAL(BatteryHasData()), this, SLOT(DataSendHandle()));
+    BatterySerial = new QSerialPort(this);
+    BatterySerial->setPortName(BATTERY_UART);
+    if(BatterySerial->open(QIODevice::ReadWrite))
+    {
+        //设置波特率
+        BatterySerial->setBaudRate(115200);
+        //设置数据位
+        BatterySerial->setDataBits(QSerialPort::Data8);
+        //设置校验位
+        BatterySerial->setParity(QSerialPort::NoParity);
+        //设置流控制
+        BatterySerial->setFlowControl(QSerialPort::NoFlowControl);
+        //设置停止位
+        BatterySerial->setStopBits(QSerialPort::OneStop);
+        connect(BatterySerial,SIGNAL(readyRead()),this,SLOT(DataSendHandle()), Qt::QueuedConnection);
+    }
+//    QString name = BATTERY_UART;
+//    if(!BatterySerial->openPort(name,BAUD115200,DATA_8,PAR_NONE,STOP_1,FLOW_OFF,TIME_OUT)) {
+//        qWarning("open battery error!");
+//    }
+
+//    connect(BatterySerial, SIGNAL(hasdata()), this, SLOT(DataSendHandle()));
+
+
+//    connect(BatterySerial, SIGNAL(BatteryHasData()), this, SLOT(DataSendHandle()));
 
     Timer_Basic = new QTimer(this);
     connect(Timer_Basic, SIGNAL(timeout()), this, SLOT(Basic_TimeOut()));
@@ -75,8 +99,8 @@ void BatteryManger::SendPack(BatterySyspam& data)
 {
     SendSem.acquire(2);
     data.arry.append(SystemUtils::_u16ToQByteArray(data.crc));
-    BatterySerial->writeData(data.arry,data.arry.size());
-    qWarning()<<"send: "<<data.arry.toHex()<<"index:"<<QString::number(data.cmd);
+    BatterySerial->write(data.arry/*,data.arry.size()*/);
+    //qWarning()<<"send: "<<data.arry.toHex()<<"index:"<<QString::number(data.cmd);
     OverTimeTab[data.cmd][1] = NORMAL;
     ReplyTimer = REPLY_OVERTIME;
     LastAOrB   = A_COMMAND;
@@ -262,7 +286,6 @@ quint16 BatteryManger::CRC16_Modbus(QByteArray &data)
 void BatteryManger::DataRecieveHandle()
 {
     BatterySyspam *data;
-    BatteryPara   Battery_buffer;
     float   value_float = 0;
     quint8  value1 = 0;
     while((data = list->get()) != NULL){
@@ -274,7 +297,7 @@ void BatteryManger::DataRecieveHandle()
             }else{
                 Battery_buffer.dayOrNight = "-1";
             }
-            qDebug()<<Battery_buffer.dayOrNight;
+            qDebug()<<"Battery_buffer.dayOrNight = " << Battery_buffer.dayOrNight;
         }else if(data->cmd < ARRAY_POWER){
             if(NO_REPLY_DATA != data->arry[0]){
                 value_float = ReplyDataCalcul(data->arry,data->cmd);
@@ -285,39 +308,50 @@ void BatteryManger::DataRecieveHandle()
             switch(data->cmd){
                 case ARRAY_VOLTAGE:
                     Battery_buffer.arrayVoltage = value;
+                    qDebug()<<"Battery_buffer.arrayVoltage" << QString::number(value_float);
                     break;
                 case ARRAY_CURRENT:
                     Battery_buffer.arrayCurrent = value;
+                    qDebug()<<"Battery_buffer.arrayCurrent" << QString::number(value_float);
                     break;
                 case VOLTAGE:
                     Battery_buffer.voltage = value;
+                    qDebug()<<"Battery_buffer.voltage" << QString::number(value_float);
                     break;
                 case CURRENT:
                     Battery_buffer.current = value;
+                    qDebug()<<"Battery_buffer.current" << QString::number(value_float);
                     break;
                 case BATTERY_TEMPERATURE:
                     Battery_buffer.batteryTemperature = value;
+                    qDebug()<<"Battery_buffer.batteryTemperature" << QString::number(value_float);
                     break;
                 case TEMPERATURE:
                     Battery_buffer.temperature = value;
+                    qDebug()<<"Battery_buffer.temperature" << QString::number(value_float);
                     break;
                 case BATTERY_POWER:
                     Battery_buffer.batteryPower = value;
+                    qDebug()<<"Battery_buffer.batteryPower" << QString::number(value_float);
                     break;
                 case BATTERY_VOLTAG_ELEVEL:
                     Battery_buffer.batteryVoltageLevel = value;
+                    qDebug()<<"Battery_buffer.batteryVoltageLevel" << QString::number(value_float);
                     break;
                 case MAX_VOLTAGE:
                     Battery_buffer.maxVoltage = value;
+                    qDebug()<<"Battery_buffer.maxVoltage" << QString::number(value_float);
                     break;
                 case MIN_VOLTAGE:
                     Battery_buffer.minVoltage = value;
+                    qDebug()<<"Battery_buffer.minVoltage" << QString::number(value_float);
                     break;
                 case BATTERY_VOLTAGE:
                     Battery_buffer.batteryVoltage = value;
+                    qDebug()<<"Battery_buffer.batteryVoltage" << QString::number(value_float);
                     break;
             }
-            qDebug()<<"vaule_float:"<<value;
+           // qDebug()<<"vaule_float:"<<value;
         }else if(data->cmd < BATTERY_PARA_NUM){
             if(NO_REPLY_DATA != data->arry[0]){
                 value_float = ReplyDataCalcul(data->arry,data->cmd);
@@ -329,201 +363,214 @@ void BatteryManger::DataRecieveHandle()
             switch(data->cmd){
                 case POWER:
                     Battery_buffer.power = value;
+                    qDebug()<<"Battery_buffer.power" << QString::number(value_float);
                     break;
                 case DAY_POWER_DISCHARGE:
                     Battery_buffer.dayPowerDischarge = value;
+                    qDebug()<<"Battery_buffer.dayPowerDischarge" << QString::number(value_float);
                     break;
                 case MONTH_POWER_DISCHARGE:
                     Battery_buffer.monthPowerDischarge = value;
+                    qDebug()<<"Battery_buffer.monthPowerDischarge" << QString::number(value_float);
                     break;
                 case YEAR_POWER_DISCHARGE:
                     Battery_buffer.yearPowerDischarge = value;
+                    qDebug()<<"Battery_buffer.yearPowerDischarge" << QString::number(value_float);
                     break;
                 case TOTAL_POWER_DISCHARGE:
                     Battery_buffer.totalPowerDischarge = value;
+                    qDebug()<<"Battery_buffer.totalPowerDischarge" << QString::number(value_float);
                     break;
                 case DAY_POWER_CHARGE:
                     Battery_buffer.dayPowerCharge = value;
+                    qDebug()<<"Battery_buffer.dayPowerCharge" << QString::number(value_float);
                     break;
                 case MONTH_POWER_CHARGE:
                     Battery_buffer.monthPowerCharge = value;
+                    qDebug()<<"Battery_buffer.monthPowerCharge" << QString::number(value_float);
                     break;
                 case YEAR_POWER_CHARGE:
                     Battery_buffer.yearPowerCharge = value;
+                    qDebug()<<"Battery_buffer.yearPowerCharge" << QString::number(value_float);
                     break;
                 case TOTAL_POWER_CHARGE:
                     Battery_buffer.totalPowerCharge = value;
+                    qDebug()<<"Battery_buffer.totalPowerCharge" << QString::number(value_float);
                     break;
                 case BATTERY_CURRENT:
                     Battery_buffer.batteryCurrent = value;
+                    qDebug()<<"Battery_buffer.batteryCurrent" << QString::number(value_float);
                     break;
                 case ARRAY_POWER:
                     Battery_buffer.arrayPower = value;
+                    qDebug()<<"Battery_buffer.arrayPower" << QString::number(value_float);
                     break;
             }
         }
         list->remove();
     }
     BatteryIntAndStringHandle(Battery_buffer);
+
 }
 
 void BatteryManger::BatteryIntAndStringHandle(BatteryPara &Battery_data)
 {
     QString BattaryPara;
     QString Battry_File_name = CONFIG_FILE;
+    static bool frist = false;
     for(int num = DAY_OR_NIGHT; num < BATTERY_PARA_NUM;num++){
         switch(num){
             case DAY_OR_NIGHT:
                 BattaryPara = BatteryFIleGet(Battry_File_name,"Battary","dayOrNight_last").toString();
                 BatteryFIleSet(Battry_File_name,"Battary","dayOrNight_last",Battery_data.dayOrNight);
-                if(BattaryPara.compare(Battery_data.dayOrNight) == 0)
+                if(BattaryPara.compare(Battery_data.dayOrNight) == 0 && frist)
                     Battery_data.dayOrNight = "-1";
                 BatteryFIleSet(Battry_File_name,"Battary","dayOrNight",Battery_data.dayOrNight);
                 break;
             case ARRAY_VOLTAGE:
                 BattaryPara = BatteryFIleGet(Battry_File_name,"Battary","arrayVoltage_last").toString();
                 BatteryFIleSet(Battry_File_name,"Battary","arrayVoltage_last",Battery_data.arrayVoltage);
-                if(BattaryPara.compare(Battery_data.arrayVoltage) == 0)
+                if(BattaryPara.compare(Battery_data.arrayVoltage) == 0 && frist)
                     Battery_data.arrayVoltage = "-1";
                 BatteryFIleSet(Battry_File_name,"Battary","arrayVoltage",Battery_data.arrayVoltage);
                 break;
             case ARRAY_CURRENT:
                  BattaryPara = BatteryFIleGet(Battry_File_name,"Battary","arrayCurrent_last").toString();
                  BatteryFIleSet(Battry_File_name,"Battary","arrayCurrent_last",Battery_data.arrayCurrent);
-                 if(BattaryPara.compare(Battery_data.arrayCurrent) == 0)
+                 if(BattaryPara.compare(Battery_data.arrayCurrent) == 0 && frist)
                      Battery_data.arrayCurrent = "-1";
                  BatteryFIleSet(Battry_File_name,"Battary","arrayCurrent",Battery_data.arrayCurrent);
                  break;
             case ARRAY_POWER:
                 BattaryPara = BatteryFIleGet(Battry_File_name,"Battary","arrayPower_last").toString();
                 BatteryFIleSet(Battry_File_name,"Battary","arrayPower_last",Battery_data.arrayPower);
-                if(BattaryPara.compare(Battery_data.arrayPower) == 0)
+                if(BattaryPara.compare(Battery_data.arrayPower) == 0 && frist)
                     Battery_data.arrayPower = "-1";
                 BatteryFIleSet(Battry_File_name,"Battary","arrayPower",Battery_data.arrayPower);
                 break;
             case VOLTAGE:
                 BattaryPara = BatteryFIleGet(Battry_File_name,"Battary","voltage_last").toString();
                 BatteryFIleSet(Battry_File_name,"Battary","voltage_last",Battery_data.voltage);
-                if(BattaryPara.compare(Battery_data.voltage) == 0)
+                if(BattaryPara.compare(Battery_data.voltage) == 0 && frist)
                     Battery_data.voltage = "-1";
                 BatteryFIleSet(Battry_File_name,"Battary","voltage",Battery_data.voltage);
                 break;
             case CURRENT:
                 BattaryPara = BatteryFIleGet(Battry_File_name,"Battary","current_last").toString();
                 BatteryFIleSet(Battry_File_name,"Battary","current_last",Battery_data.current);
-                if(BattaryPara.compare(Battery_data.current) == 0)
+                if(BattaryPara.compare(Battery_data.current) == 0 && frist)
                     Battery_data.current = "-1";
                 BatteryFIleSet(Battry_File_name,"Battary","current",Battery_data.current);
                 break;
             case POWER:
                 BattaryPara = BatteryFIleGet(Battry_File_name,"Battary","power_last").toString();
                 BatteryFIleSet(Battry_File_name,"Battary","power_last",Battery_data.power);
-                if(BattaryPara.compare(Battery_data.power) == 0)
+                if(BattaryPara.compare(Battery_data.power) == 0 && frist)
                     Battery_data.power = "-1";
                 BatteryFIleSet(Battry_File_name,"Battary","power",Battery_data.power);
                 break;
             case BATTERY_TEMPERATURE:
                 BattaryPara = BatteryFIleGet(Battry_File_name,"Battary","batteryTemperature_last").toString();
                 BatteryFIleSet(Battry_File_name,"Battary","batteryTemperature_last",Battery_data.batteryTemperature);
-                if(BattaryPara.compare(Battery_data.batteryTemperature) == 0)
+                if(BattaryPara.compare(Battery_data.batteryTemperature) == 0 && frist)
                     Battery_data.batteryTemperature = "-1";
                 BatteryFIleSet(Battry_File_name,"Battary","batteryTemperature",Battery_data.batteryTemperature);
                 break;
             case TEMPERATURE:
                 BattaryPara = BatteryFIleGet(Battry_File_name,"Battary","temperature_last").toString();
                 BatteryFIleSet(Battry_File_name,"Battary","temperature_last",Battery_data.temperature);
-                if(BattaryPara.compare(Battery_data.temperature) == 0)
+                if(BattaryPara.compare(Battery_data.temperature) == 0 && frist)
                     Battery_data.temperature = "-1";
                 BatteryFIleSet(Battry_File_name,"Battary","temperature",Battery_data.temperature);
                 break;
             case BATTERY_POWER:
                 BattaryPara = BatteryFIleGet(Battry_File_name,"Battary","batteryPower_last").toString();
                 BatteryFIleSet(Battry_File_name,"Battary","batteryPower_last",Battery_data.batteryPower);
-                if(BattaryPara.compare(Battery_data.batteryPower) == 0)
+                if(BattaryPara.compare(Battery_data.batteryPower) == 0 && frist)
                     Battery_data.batteryPower = "-1";
                 BatteryFIleSet(Battry_File_name,"Battary","batteryPower",Battery_data.batteryPower);
                 break;
             case BATTERY_VOLTAG_ELEVEL:
                 BattaryPara = BatteryFIleGet(Battry_File_name,"Battary","batteryVoltageLevel_last").toString();
                 BatteryFIleSet(Battry_File_name,"Battary","batteryVoltageLevel_last",Battery_data.batteryVoltageLevel);
-                if(BattaryPara.compare(Battery_data.batteryVoltageLevel) == 0)
+                if(BattaryPara.compare(Battery_data.batteryVoltageLevel) == 0 && frist)
                     Battery_data.batteryVoltageLevel = "-1";
                 BatteryFIleSet(Battry_File_name,"Battary","batteryVoltageLevel",Battery_data.batteryVoltageLevel);
                 break;
             case MAX_VOLTAGE:
                 BattaryPara = BatteryFIleGet(Battry_File_name,"Battary","maxVoltage_last").toString();
                 BatteryFIleSet(Battry_File_name,"Battary","maxVoltage_last",Battery_data.maxVoltage);
-                if(BattaryPara.compare(Battery_data.maxVoltage) == 0)
+                if(BattaryPara.compare(Battery_data.maxVoltage) == 0 && frist)
                     Battery_data.maxVoltage = "-1";
                 BatteryFIleSet(Battry_File_name,"Battary","maxVoltage",Battery_data.maxVoltage);
                 break;
             case MIN_VOLTAGE:
                 BattaryPara = BatteryFIleGet(Battry_File_name,"Battary","minVoltage_last").toString();
                 BatteryFIleSet(Battry_File_name,"Battary","minVoltage_last",Battery_data.minVoltage);
-                if(BattaryPara.compare(Battery_data.minVoltage) == 0)
+                if(BattaryPara.compare(Battery_data.minVoltage) == 0 && frist)
                     Battery_data.minVoltage = "-1";
                 BatteryFIleSet(Battry_File_name,"Battary","minVoltage",Battery_data.minVoltage);
                 break;
             case DAY_POWER_DISCHARGE:
                 BattaryPara = BatteryFIleGet(Battry_File_name,"Battary","dayPowerDischarge_last").toString();
                 BatteryFIleSet(Battry_File_name,"Battary","dayPowerDischarge_last",Battery_data.dayPowerDischarge);
-                if(BattaryPara.compare(Battery_data.dayPowerDischarge) == 0)
+                if(BattaryPara.compare(Battery_data.dayPowerDischarge) == 0 && frist)
                     Battery_data.dayPowerDischarge = "-1";
                 BatteryFIleSet(Battry_File_name,"Battary","dayPowerDischarge",Battery_data.dayPowerDischarge);
                 break;
             case MONTH_POWER_DISCHARGE:
                 BattaryPara = BatteryFIleGet(Battry_File_name,"Battary","monthPowerDischarge_last").toString();
                 BatteryFIleSet(Battry_File_name,"Battary","monthPowerDischarge_last",Battery_data.monthPowerDischarge);
-                if(BattaryPara.compare(Battery_data.monthPowerDischarge) == 0)
+                if(BattaryPara.compare(Battery_data.monthPowerDischarge) == 0 && frist)
                     Battery_data.monthPowerDischarge = "-1";
                 BatteryFIleSet(Battry_File_name,"Battary","monthPowerDischarge",Battery_data.monthPowerDischarge);
                 break;
             case YEAR_POWER_DISCHARGE:
                 BattaryPara = BatteryFIleGet(Battry_File_name,"Battary","yearPowerDischarge_last").toString();
                 BatteryFIleSet(Battry_File_name,"Battary","yearPowerDischarge_last",Battery_data.yearPowerDischarge);
-                if(BattaryPara.compare(Battery_data.yearPowerDischarge) == 0)
+                if(BattaryPara.compare(Battery_data.yearPowerDischarge) == 0 && frist)
                     Battery_data.yearPowerDischarge = "-1";
                 BatteryFIleSet(Battry_File_name,"Battary","yearPowerDischarge",Battery_data.yearPowerDischarge);
                 break;
             case TOTAL_POWER_DISCHARGE:
                 BattaryPara = BatteryFIleGet(Battry_File_name,"Battary","totalPowerDischarge_last").toString();
                 BatteryFIleSet(Battry_File_name,"Battary","totalPowerDischarge_last",Battery_data.totalPowerDischarge);
-                if(BattaryPara.compare(Battery_data.totalPowerDischarge) == 0)
+                if(BattaryPara.compare(Battery_data.totalPowerDischarge) == 0 && frist)
                     Battery_data.totalPowerDischarge = "-1";
                 BatteryFIleSet(Battry_File_name,"Battary","totalPowerDischarge",Battery_data.totalPowerDischarge);
                 break;
             case DAY_POWER_CHARGE:
                 BattaryPara = BatteryFIleGet(Battry_File_name,"Battary","dayPowerCharge_last").toString();
                 BatteryFIleSet(Battry_File_name,"Battary","dayPowerCharge_last",Battery_data.dayPowerCharge);
-                if(BattaryPara.compare(Battery_data.dayPowerCharge) == 0)
+                if(BattaryPara.compare(Battery_data.dayPowerCharge) == 0 && frist)
                     Battery_data.dayPowerCharge = "-1";
                 BatteryFIleSet(Battry_File_name,"Battary","dayPowerCharge",Battery_data.dayPowerCharge);
                 break;
             case MONTH_POWER_CHARGE:
                 BattaryPara = BatteryFIleGet(Battry_File_name,"Battary","monthPowerCharge_last").toString();
                 BatteryFIleSet(Battry_File_name,"Battary","monthPowerCharge_last",Battery_data.monthPowerCharge);
-                if(BattaryPara.compare(Battery_data.monthPowerCharge) == 0)
+                if(BattaryPara.compare(Battery_data.monthPowerCharge) == 0 && frist)
                     Battery_data.monthPowerCharge = "-1";
                 BatteryFIleSet(Battry_File_name,"Battary","monthPowerCharge",Battery_data.monthPowerCharge);
                 break;
             case YEAR_POWER_CHARGE:
                 BattaryPara = BatteryFIleGet(Battry_File_name,"Battary","yearPowerCharge_last").toString();
                 BatteryFIleSet(Battry_File_name,"Battary","yearPowerCharge_last",Battery_data.yearPowerCharge);
-                if(BattaryPara.compare(Battery_data.yearPowerCharge) == 0)
+                if(BattaryPara.compare(Battery_data.yearPowerCharge) == 0 && frist)
                     Battery_data.yearPowerCharge = "-1";
                 BatteryFIleSet(Battry_File_name,"Battary","yearPowerCharge",Battery_data.yearPowerCharge);
                 break;
             case TOTAL_POWER_CHARGE:
                 BattaryPara = BatteryFIleGet(Battry_File_name,"Battary","totalPowerCharge_last").toString();
                 BatteryFIleSet(Battry_File_name,"Battary","totalPowerCharge_last",Battery_data.totalPowerCharge);
-                if(BattaryPara.compare(Battery_data.totalPowerCharge) == 0)
+                if(BattaryPara.compare(Battery_data.totalPowerCharge) == 0 && frist)
                     Battery_data.totalPowerCharge = "-1";
                 BatteryFIleSet(Battry_File_name,"Battary","totalPowerCharge",Battery_data.totalPowerCharge);
                 break;
             case BATTERY_VOLTAGE:
                 BattaryPara = BatteryFIleGet(Battry_File_name,"Battary","batteryVoltage_last").toString();
                 BatteryFIleSet(Battry_File_name,"Battary","batteryVoltage_last",Battery_data.batteryVoltage);
-                if(BattaryPara.compare(Battery_data.batteryVoltage) == 0){
+                if(BattaryPara.compare(Battery_data.batteryVoltage) == 0 && frist){
                     Battery_data.batteryVoltage = "-1";
                     qDebug()<<"same value!!!!"<<Battery_data.batteryVoltage;
                 }
@@ -532,12 +579,13 @@ void BatteryManger::BatteryIntAndStringHandle(BatteryPara &Battery_data)
             case BATTERY_CURRENT:
                 BattaryPara = BatteryFIleGet(Battry_File_name,"Battary","batteryCurrent_last").toString();
                 BatteryFIleSet(Battry_File_name,"Battary","batteryCurrent_last",Battery_data.batteryCurrent);
-                if(BattaryPara.compare(Battery_data.batteryCurrent) == 0)
+                if(BattaryPara.compare(Battery_data.batteryCurrent) == 0 && frist)
                     Battery_data.batteryCurrent = "-1";
                 BatteryFIleSet(Battry_File_name,"Battary","batteryCurrent",Battery_data.batteryCurrent);
                 break;
         }
     }
+    frist = true;
 }
 
 QVariant BatteryManger::BatteryFIleGet(QString file_name, QString NodeName, QString KeyName)
@@ -601,7 +649,7 @@ void BatteryManger::ReadBatteryParam(quint16 addr, quint16 ParamNum)
     Cmd_OverTime         = NORMAL;
     ReplyTimer           = REPLY_OVERTIME;
     ReadBattery.arry.append(SystemUtils::_u16ToQByteArray(ReadBattery.crc));
-    BatterySerial->writeData(ReadBattery.arry,ReadBattery.arry.size());
+    BatterySerial->write(ReadBattery.arry/*,ReadBattery.arry.size()*/);
     SendSem.release(1);
 }
 
@@ -621,7 +669,7 @@ void BatteryManger::WriteBatteryParam(quint16 addr, quint16 addr_num, quint8 dat
     }
     WriteSyspam.crc = CRC16_Modbus(WriteSyspam.arry);
     WriteSyspam.arry.append(SystemUtils::_u16ToQByteArray(WriteSyspam.crc));
-    BatterySerial->writeData(WriteSyspam.arry,WriteSyspam.arry.size());
+    BatterySerial->write(WriteSyspam.arry/*,WriteSyspam.arry.size()*/);
 
     Last_Comannd         = addr;
     LastAOrB             = B_COMMAND;
@@ -673,15 +721,22 @@ void BatteryManger::DataSendHandle()
     if(LastAOrB == A_COMMAND){
         LastAOrB = B_COMMAND;
         if(OverTimeTab[CmdIndex][1] == OVER_TIME){
-           // qDebug()<<"recieve over time!";
+            qDebug()<<"recieve over time!";
+            qWarning("CmdIndex: %d", CmdIndex);
             data_.cmd = CmdIndex;
             data_.arry.append(NO_REPLY_DATA);
             data_.crc = 0;
             list->add(data_);
         }else if(OverTimeTab[CmdIndex][1] == NORMAL){
             /*提取从串口接收的数据*/
-            QByteArray data = BatterySerial->readData();
-            qDebug() << data.toHex();
+            QByteArray data = BatterySerial->readAll();
+            if(!data.isEmpty()){
+                if(data.at(0) != DEV_ID)  //太阳能电池管理  0x7e既作为设备ID也可以作为帧头
+                    return;
+            } else {
+                return;
+            }
+          //  qDebug() << "@@data@@:" <<data.toHex();
             if(!data.isEmpty()){
                 if(DEV_ID == data[0]){
                     data_.cmd = CmdIndex;
@@ -711,7 +766,7 @@ void BatteryManger::DataSendHandle()
         Timer_Send->start(10*TIMER_MSEC);
         LastAOrB = A_COMMAND;
         if(Cmd_OverTime == NORMAL){
-            QByteArray data = BatterySerial->readData();
+            QByteArray data/* = BatterySerial->readData()*/;
             if(!data.isEmpty()){//协议处理
                 if(data[1] = FUNC_READ){//读命令
 

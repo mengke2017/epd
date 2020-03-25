@@ -103,7 +103,7 @@ public:
     QByteArray readData();
     static serial * serialInt();
 signals:
-    void hasdata(QString ip,uint32 port,uint32 dev_id);
+    void setIpPort(QString ip,uint32 port,uint32 dev_id);
     void BatteryHasData(void);
 public slots:
     void remoteDateInComing();
