@@ -6,6 +6,7 @@
 #include <QNetworkRequest>
 #include <QObject>
 #include <QTimer>
+#include <QEventLoop>
 //#include <QSemaphore>
 #include "client.h"
 
@@ -23,6 +24,7 @@
 #define UNI_MAX_UTF16 (UTF32)0x0010FFFF
 #define UNI_MAX_UTF32 (UTF32)0x7FFFFFFF
 #define UNI_MAX_LEGAL_UTF32 (UTF32)0x0010FFFF
+
 
 typedef unsigned char   boolean;
 typedef unsigned int	CharType ;
@@ -67,9 +69,9 @@ typedef struct Raw{
     QString Host;
     QString Connection;
     QString User_Agent;
-    QString Soap_XML;
-    QString Envelope_start;
-    QString Envelope_end;
+    QByteArray Soap_XML;
+    QByteArray Envelope_start;
+    QByteArray Envelope_end;
 }Raw_Header;
 
 //typedef struct http_protocol{
@@ -86,21 +88,28 @@ public:
     QByteArray Bzip2DataHandle( QByteArray data);
     static http * httpInt(QString estationid);
     client *tcp_client;
+
 //    QSemaphore cmd_sem;
 private:
     QNetworkAccessManager *manager;
-    void Webservice_Request(Raw_Header *raw);
+    void Webservice_Request_DownLoad(Raw_Header *raw);
+    void Webservice_Request_UpLoad(QHttpMultiPart *image_part);
     QString unicodeToUtf_8(const QString &resStr);
     int Utf16_To_Utf8 (const UTF16* sourceStart, UTF8* targetStart, size_t outLen ,  ConversionFlags flags);
+    QByteArray AddHttpCMD(QString arry, QString bound, QString id, const QByteArray& data);
     int  http_command;
     QList<int> command_list;
     QString Device_id;
     QTimer *timer;
+    QNetworkReply* mReply;
+    QFile *app_file;
 signals:
     void recieved_data(int);
     void http_recall(int);
     void to_local(int);
 private slots:
+    void ReadyRead_get();//Finished_get
+    void Finished_get();
     void ReplyFinished(QNetworkReply *);
     void http_protocol_handle(int command);
     void _HttpPostRequest();

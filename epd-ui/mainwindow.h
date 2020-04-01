@@ -29,9 +29,9 @@ private:
     Ui::MainWindow *ui;
     QTimer *timer;
     QStackedWidget *m_pStackedWidget;
+    QScreen *screen;
 
     BackstageManager *service;
-//    uint8_t current_index;
 
     QFrame *top;
     TopWidget *top_widget;
@@ -44,8 +44,6 @@ private:
     QFrame *bot;
     QList<ChildLine*> childpage_list;
 
-//    QString station_name;
-
     int16_t line_total;
     uint16_t mainpage_line_max;
     uint16_t childpage_line_max;
@@ -53,9 +51,11 @@ private:
     uint8_t child_tail;
     InitPara para;
     bool bullein_flag;
-
     EPaper *show_thread;
+    QList<StyelInfo> style_info_list;
 
+signals:
+    void update_shot_screen(uint8 command);
 private :
     void createMainpage(QList<PageInfo> page_info);
 //    int8_t createLine(int16_t page_number, int16_t count);
@@ -65,14 +65,16 @@ private :
     void showNextPage(int page);
     uint8 showMainpage();
     uint8 showChildpage();
-    QString read_xml_node(QString,QString,QString);
+    QString read_xml_node(QString *,QString,QString,bool);
 public slots:
     void update_status_slot(QString,QString,QList<qint8>);
     void read_lineinfo_xml();
     void read_weather_xml();
     void read_initpara_xml();
+    void read_lineStyle_xml();
     void update_bulletin_text(QString);
     void ui_star_slot(bool);
+    void slotGrabFullScreen();
 private slots:
     void slotTimerOut();
 };

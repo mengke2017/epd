@@ -2,6 +2,8 @@
 #define CUSTOMIZE_H
 #include <QDebug>
 
+#define ARM_32BIT    1
+
 typedef unsigned char  uint8_t;
 typedef unsigned short uint16_t;
 typedef unsigned int   uint32_t;
@@ -97,6 +99,22 @@ typedef  long   int64;
 #define B23_DISCHARGE_DEEP                  0x906D
 #define B24_CHARGE_DEEP                     0x906E
 #define B25_CHARGE_MANAGER                  0x9070
+/**************************************************/
+/***********HTTP CMD*************/
+#define GET_WEATHER_HTTP  0
+#define WEATHER_HTTP      0
+#define GET_LINE_HTTP     1    //更新线路
+#define UPDATE_LINE_HTTP  1
+#define GET_INI_HTTP      2   //主动更新初始化参数
+#define GET_SERVICE_TIME  3
+#define GET_LINE_STYLE    4
+#define GET_SOFT_FILE     5
+#define PUT_SHOT_SCREEN   6
+#define PUT_ERROR_MSG     7
+#define GET_VERSION       8
+
+#define PARAMS_NUM        9
+/*********************************/
 
 typedef struct
 {
@@ -106,6 +124,7 @@ typedef struct
 } LineStatus;  // update
 
 typedef struct {
+    QString line_id;
     QString stat_id;
     QString endstat_name;
     QString Begtime;
@@ -116,7 +135,14 @@ typedef struct {
     QList<QString> name_list;
     uint8_t current_index;
     uint8_t station_total;
+    bool    showFlag;
 } PageInfo;  //creat
+
+typedef struct {
+    QString line_id;
+    QString type;
+    QString seq;
+} StyelInfo;
 
 typedef struct {
     QString type;

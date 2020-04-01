@@ -87,6 +87,27 @@ static void DrawRGBdata(uint16_t Xpos, uint16_t Ypos,uint16_t Width, uint16_t Hi
 	}
 }
 
+void EPD_DrawBitmap(SystemInfo gstI80DevInfo, uint16_t Xpos, uint16_t Ypos,uint16_t *bmp)
+{
+        uint16_t i,j;
+        uint16_t R,G,B,temp;
+        double Gray;
+
+        for (j=0;j<412;j++)
+        {
+                for (i=0;i<550;i++)
+                {
+                        temp = bmp[j*550+i];
+                        R = (temp >> 11)<<3;
+                        G = ((temp&0x07E0) >> 5)<<2;
+                        B = (temp&0x01F)<<3;
+                        Gray = (R*299 + G*587 + B*114 + 500) / 1000;
+                        EPD_DrawRGBPixel(i, j,(uint8_t)Gray);
+                }
+        }
+}
+
+
 uint8_t
 Show_linuxfb(uint32_t x, uint32_t y) {
     static int fp=0;
@@ -128,19 +149,14 @@ Show_linuxfb(uint32_t x, uint32_t y) {
                 return -1;
             }
         }
-        }
-//    bmp_BitCount = vinfo.bits_per_pixel;
+    }
 #if LINUX_32BIT
     DrawRGBdata(x, y, vinfo.xres, vinfo.yres, (uint8_t*)bits);
 #endif
     flag = 1;
     if(strncmp((int8_t*)bits, (int8_t*)old_buf, finfo.smem_len/2) != 0) {
         strncpy((int8_t*)old_buf, (int8_t*)bits, finfo.smem_len/2);
-//        munmap(bits,finfo.smem_len);
-        //close (fp);
         return 0;  // 刷新
     }
-//    munmap(bits,finfo.smem_len);
-   // close (fp);
     return 1;  // 不刷新
 }

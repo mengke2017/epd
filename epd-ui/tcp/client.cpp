@@ -40,9 +40,18 @@ void client::ReadMsg(void)
 void client::ConnectSuccess(void)
 {
     qWarning()<<"connect success!";
+    static bool first = true;
     ConfigFIleSet("client_syspam","ip",my_syspam.ip);
     ConfigFIleSet("client_syspam","port",my_syspam.port);
     ConfigFIleSet("client_syspam","device_id",my_syspam.device_id);
+
+    if(first == true) {
+//        emit http_command(GET_VERSION);
+        emit http_command(GET_INI_HTTP);
+        emit http_command(GET_LINE_STYLE);
+        emit http_command(GET_LINE_HTTP);
+        first = false;
+    }
 }
 
 void client::ConnectError()
@@ -97,6 +106,7 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
                               QString strDate = dt.toString(Qt::ISODate);//日期格式自定义
 
                               if(strDate != NULL) {//有效时间
+#if ARM_32BIT
                                   QString date_time;
                              //     qWarning()<<strDate;
                                   date_time = date.append(strDate.replace("T"," "));
@@ -108,6 +118,7 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
                                   system(dates);
                                   char clock[] = "hwclock -w";
                                   system(clock);
+#endif
                                   SendOK_Response(ANSWER_SERVICE2CLIENT,procotol_struct.command_name,procotol_struct.command_serial);
                               }
                         }
@@ -125,7 +136,7 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
 
                         break;
                     case 61://紧急消息
-                    qWarning("cmd 61!");
+
 
                         break;
                     case 13://车辆分布位置
@@ -188,10 +199,7 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
                                 if(msg_buf.length() < 11)
                                     break;
                                 msg.type = msg_buf.at(1);
-    //                            msg.bgdate = msg_buf.at(3);
-    //                            msg.enddate = msg_buf.at(5);
-    //                            msg.bgtime = msg_buf.at(7);
-    //                            msg.endtime = msg_buf.at(9);
+
                                 msg.value = msg_buf.at(11);
                                 msg.star_sec = dateTime.fromString(msg_buf.at(3)+" "+msg_buf.at(7),
                                                                    "yyyy-MM-dd hh:mm:ss").toTime_t();
@@ -214,11 +222,15 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
                        // command_handle(cmd);
                         if(!cmd.compare(CMD_RESTSRT)) {  // 重启
                             qWarning("reboot");
+#if ARM_32BIT
                             system("reboot");
+#endif
                             SendCmd_Response(0,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_CLOSE)) {  // 关机
                             qWarning("poweroff");
-                            //system("poweroff");
+#if ARM_32BIT
+                            system("poweroff");
+#endif
                             SendCmd_Response(1,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_LIGHT_ON)) {  // 开灯
                             qWarning("CMD_LIGHT_ON");
@@ -237,7 +249,7 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
                             SendCmd_Response(4,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_UPDATE_LINE)) {  // 更新线路
                             qWarning("CMD_UPDATE_LINE");
-                            emit http_command(UPDATE_LINE_HTTP);
+                            emit http_command(GET_LINE_HTTP);
                             SendCmd_Response(6,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_UPDATE_FILE)) {  // 软件升级
                             qWarning("CMD_UPDATE_FILE");
@@ -245,11 +257,12 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
                             SendCmd_Response(7,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_SCREENSHOT_ON)) {  // 截屏开
                             qWarning("CMD_SCREENSHOT_ON");
-
+                          //  screen_shot = true;
+                            emit client_shot();
                             SendCmd_Response(10,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_SCREENSHOT_OFF)) {  // 截屏关
                             qWarning("CMD_SCREENSHOT_OFF");
-
+                          //  screen_shot = false;
                             SendCmd_Response(11,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_LIGHT_LOW)) {  // 背光 低
                             qWarning("CMD_LIGHT_LOW");
@@ -439,66 +452,65 @@ void client::clientHeartbeat() // 终端心跳
         send_data.append(",");
         pack.append("<?xml version=\"1.0\" encoding=\"utf-8\"?><root>");
         pack.append("<stationId>"+ QString::number(my_syspam.device_id) +"</stationId>");
-        pack.append("<playingItem>0</playingItem><temperature><lcd>0</lcd><box>0</box></temperature>");
-        pack.append("<humidity><lcd>0</lcd><box>0</box></humidity><bootState></bootState><fans>0</fans>");
-        pack.append("<accessControl>0</accessControl><volume>0</volume><illumination>0</illumination><TTS></TTS>");
-        pack.append("<waterLevel></waterLevel><av></av><ac></ac><ap></ap><ate></ate><led></led><lumia></lumia>");
-        pack.append("<heater></heater><dvr></dvr><camera></camera><router4g></router4g></root>");
+//        pack.append("<playingItem>0</playingItem>");
+//        pack.append("<temperature><lcd>0</lcd><box>0</box></temperature>");
+//        pack.append("<humidity><lcd>0</lcd><box>0</box></humidity><bootState></bootState><fans>0</fans>");
+//        pack.append("<accessControl>0</accessControl><volume>0</volume><illumination>0</illumination><TTS></TTS>");
+//        pack.append("<waterLevel></waterLevel><av></av><ac></ac><ap></ap><ate></ate><led></led><lumia></lumia>");
+//        pack.append("<heater></heater><dvr></dvr><camera></camera><router4g></router4g>");
 
-        if(batteryPara.dayOrNight.compare("-1"))  // 如果值不等于-1
+        if(batteryPara.dayOrNight.compare("-1") && (!batteryPara.dayOrNight.isEmpty()))  // 如果值不等于-1
             InkInfo.append("<dayOrNight>"+ batteryPara.dayOrNight +"</dayOrNight>");
-        if(batteryPara.arrayVoltage.compare("-1"))  // 如果值不等于-1
+        if(batteryPara.arrayVoltage.compare("-1") && (!batteryPara.arrayVoltage.isEmpty()))  // 如果值不等于-1
             InkInfo.append("<arrayVoltage>"+ batteryPara.arrayVoltage +"</arrayVoltage>");
-        if(batteryPara.arrayCurrent.compare("-1"))  // 如果值不等于-1
+        if(batteryPara.arrayCurrent.compare("-1") && (!batteryPara.arrayCurrent.isEmpty()))  // 如果值不等于-1
             InkInfo.append("<arrayCurrent>"+ batteryPara.arrayCurrent +"</arrayCurrent>");
-        if(batteryPara.arrayPower.compare("-1"))  // 如果值不等于-1
+        if(batteryPara.arrayPower.compare("-1") && (!batteryPara.arrayPower.isEmpty()))  // 如果值不等于-1
             InkInfo.append("<arrayPower>"+ batteryPara.arrayPower +"</arrayPower>");
-        if(batteryPara.voltage.compare("-1"))  // 如果值不等于-1
+        if(batteryPara.voltage.compare("-1") && (!batteryPara.voltage.isEmpty()))  // 如果值不等于-1
             InkInfo.append("<voltage>"+ batteryPara.voltage +"</voltage>");
-        if(batteryPara.current.compare("-1"))  // 如果值不等于-1
+        if(batteryPara.current.compare("-1") && (!batteryPara.current.isEmpty()))  // 如果值不等于-1
             InkInfo.append("<current>"+ batteryPara.current +"</current>");
-        if(batteryPara.arrayCurrent.compare("-1"))  // 如果值不等于-1
+        if(batteryPara.arrayCurrent.compare("-1") && (!batteryPara.power.isEmpty()))  // 如果值不等于-1
             InkInfo.append("<power>"+ batteryPara.power +"</power>");
-        if(batteryPara.batteryTemperature.compare("-1"))  // 如果值不等于-1
+        if(batteryPara.batteryTemperature.compare("-1") && (!batteryPara.batteryTemperature.isEmpty()))  // 如果值不等于-1
             InkInfo.append("<batteryTemperature>"+ batteryPara.batteryTemperature +"</batteryTemperature>");
-        if(batteryPara.temperature.compare("-1"))  // 如果值不等于-1
+        if(batteryPara.temperature.compare("-1") && (!batteryPara.temperature.isEmpty()))  // 如果值不等于-1
             InkInfo.append("<temperature>"+ batteryPara.temperature +"</temperature>");
-        if(batteryPara.batteryPower.compare("-1"))  // 如果值不等于-1
+        if(batteryPara.batteryPower.compare("-1") && (!batteryPara.batteryPower.isEmpty()))  // 如果值不等于-1
             InkInfo.append("<batteryPower>"+ batteryPara.batteryPower +"</batteryPower>");
-        if(batteryPara.batteryVoltage.compare("-1"))  // 如果值不等于-1
+        if(batteryPara.batteryVoltage.compare("-1") && (!batteryPara.batteryVoltage.isEmpty()))  // 如果值不等于-1
             InkInfo.append("<batteryVoltage>"+ batteryPara.batteryVoltage +"</batteryVoltage>");
-        if(batteryPara.maxVoltage.compare("-1"))  // 如果值不等于-1
+        if(batteryPara.maxVoltage.compare("-1") && (!batteryPara.maxVoltage.isEmpty()))  // 如果值不等于-1
             InkInfo.append("<maxVoltage>"+ batteryPara.maxVoltage +"</maxVoltage>");
-        if(batteryPara.dayPowerDischarge.compare("-1"))  // 如果值不等于-1
+        if(batteryPara.dayPowerDischarge.compare("-1") && (!batteryPara.dayPowerDischarge.isEmpty()))  // 如果值不等于-1
             InkInfo.append("<dayPowerDischarge>"+ batteryPara.dayPowerDischarge +"</dayPowerDischarge>");
-        if(batteryPara.monthPowerDischarge.compare("-1"))  // 如果值不等于-1
+        if(batteryPara.monthPowerDischarge.compare("-1") && (!batteryPara.monthPowerDischarge.isEmpty()))  // 如果值不等于-1
             InkInfo.append("<monthPowerDischarge>"+ batteryPara.monthPowerDischarge +"</monthPowerDischarge>");
-        if(batteryPara.yearPowerDischarge.compare("-1"))  // 如果值不等于-1
+        if(batteryPara.yearPowerDischarge.compare("-1") && (!batteryPara.yearPowerDischarge.isEmpty()))  // 如果值不等于-1
             InkInfo.append("<yearPowerDischarge>"+ batteryPara.yearPowerDischarge +"</yearPowerDischarge>");
-        if(batteryPara.totalPowerDischarge.compare("-1"))  // 如果值不等于-1
+        if(batteryPara.totalPowerDischarge.compare("-1") && (!batteryPara.totalPowerDischarge.isEmpty()))  // 如果值不等于-1
             InkInfo.append("<totalPowerDischarge>"+ batteryPara.totalPowerDischarge +"</totalPowerDischarge>");
-        if(batteryPara.dayPowerCharge.compare("-1"))  // 如果值不等于-1
+        if(batteryPara.dayPowerCharge.compare("-1") && (!batteryPara.dayPowerCharge.isEmpty()))  // 如果值不等于-1
             InkInfo.append("<dayPowerCharge>"+ batteryPara.dayPowerCharge +"</dayPowerCharge>");
-        if(batteryPara.monthPowerCharge.compare("-1"))  // 如果值不等于-1
+        if(batteryPara.monthPowerCharge.compare("-1") && (!batteryPara.monthPowerCharge.isEmpty()))  // 如果值不等于-1
             InkInfo.append("<monthPowerCharge>"+ batteryPara.monthPowerCharge +"</monthPowerCharge>");
-        if(batteryPara.yearPowerCharge.compare("-1"))  // 如果值不等于-1
+        if(batteryPara.yearPowerCharge.compare("-1") && (!batteryPara.yearPowerCharge.isEmpty()))  // 如果值不等于-1
             InkInfo.append("<yearPowerCharge>"+ batteryPara.yearPowerCharge +"</yearPowerCharge>");
-        if(batteryPara.totalPowerCharge.compare("-1"))  // 如果值不等于-1
+        if(batteryPara.totalPowerCharge.compare("-1") && (!batteryPara.totalPowerCharge.isEmpty()))  // 如果值不等于-1
             InkInfo.append("<totalPowerCharge>"+ batteryPara.totalPowerCharge +"</totalPowerCharge>");
-        if(batteryPara.batteryVoltage.compare("-1"))  // 如果值不等于-1
+        if(batteryPara.batteryVoltage.compare("-1") && (!batteryPara.batteryVoltage.isEmpty()))  // 如果值不等于-1
             InkInfo.append("<batteryVoltage>"+ batteryPara.batteryVoltage +"</batteryVoltage>");
-        if(batteryPara.batteryCurrent.compare("-1"))  // 如果值不等于-1
+        if(batteryPara.batteryCurrent.compare("-1") && (!batteryPara.batteryCurrent.isEmpty()))  // 如果值不等于-1
             InkInfo.append("<batteryCurrent>"+ batteryPara.batteryCurrent +"</batteryCurrent>");
 
-        pack.append("<inkScreen>"+InkInfo+"</inkScreen>");
+        pack.append("<inkScreen>"+InkInfo+"</inkScreen></root>");
         send_data.append(QString::number(pack.length()));   // 长度
         send_data.append(",");
         send_data.append(pack);
-//        send_data.append(",");
-//        send_data.append(END);
         send(send_data.toLatin1());
+        qWarning()<<send_data;
     }
-    qWarning()<<"send:"<<send_data;
 }
 
 void client::clientSignUp()
@@ -518,10 +530,7 @@ void client::clientSignUp()
     send_data.append(QString::number(pack.length()));   // 长度
     send_data.append(",");
     send_data.append(pack);
-//    send_data.append(",");
-//    send_data.append(END);
     send(send_data.toLatin1());
- //   qWarning()<<"send:"<<send_data;
 }
 
 void client::get_version()
@@ -591,14 +600,6 @@ void client::TimeOut()
 
     }
 }
-//void client::socketConnect(bool is)
-//{
-//    if(!is) {
-//        mSocketClientFlag = false;
-//        mSocketClientTime = 5;
-//        mSignUpFlag = false;
-//    }
-//}
 
 bool client::isConnected()
 {

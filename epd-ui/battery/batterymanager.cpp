@@ -81,7 +81,7 @@ BatteryManger::BatteryManger(QObject *parent) :
     Timer_Send->moveToThread(SendThead);
     connect(Timer_Send, SIGNAL(timeout()), this, SLOT(Send_TimeOut()), Qt::QueuedConnection);
     connect(SendThead, SIGNAL(started()), Timer_Send, SLOT(start()));
-    SendThead->start();
+    SendThead->start(QThread::TimeCriticalPriority);
 
     connect(this,SIGNAL(RecieveOver()),this,SLOT(DataSendHandle()));
 
@@ -297,7 +297,7 @@ void BatteryManger::DataRecieveHandle()
             }else{
                 Battery_buffer.dayOrNight = "-1";
             }
-            qDebug()<<"Battery_buffer.dayOrNight = " << Battery_buffer.dayOrNight;
+            //qDebug()<<"Battery_buffer.dayOrNight = " << Battery_buffer.dayOrNight;
         }else if(data->cmd < ARRAY_POWER){
             if(NO_REPLY_DATA != data->arry[0]){
                 value_float = ReplyDataCalcul(data->arry,data->cmd);
@@ -308,47 +308,47 @@ void BatteryManger::DataRecieveHandle()
             switch(data->cmd){
                 case ARRAY_VOLTAGE:
                     Battery_buffer.arrayVoltage = value;
-                    qDebug()<<"Battery_buffer.arrayVoltage" << QString::number(value_float);
+                    //qDebug()<<"Battery_buffer.arrayVoltage" << QString::number(value_float);
                     break;
                 case ARRAY_CURRENT:
                     Battery_buffer.arrayCurrent = value;
-                    qDebug()<<"Battery_buffer.arrayCurrent" << QString::number(value_float);
+                   // qDebug()<<"Battery_buffer.arrayCurrent" << QString::number(value_float);
                     break;
                 case VOLTAGE:
                     Battery_buffer.voltage = value;
-                    qDebug()<<"Battery_buffer.voltage" << QString::number(value_float);
+                    //qDebug()<<"Battery_buffer.voltage" << QString::number(value_float);
                     break;
                 case CURRENT:
                     Battery_buffer.current = value;
-                    qDebug()<<"Battery_buffer.current" << QString::number(value_float);
+                    //qDebug()<<"Battery_buffer.current" << QString::number(value_float);
                     break;
                 case BATTERY_TEMPERATURE:
                     Battery_buffer.batteryTemperature = value;
-                    qDebug()<<"Battery_buffer.batteryTemperature" << QString::number(value_float);
+                    //qDebug()<<"Battery_buffer.batteryTemperature" << QString::number(value_float);
                     break;
                 case TEMPERATURE:
                     Battery_buffer.temperature = value;
-                    qDebug()<<"Battery_buffer.temperature" << QString::number(value_float);
+                    //qDebug()<<"Battery_buffer.temperature" << QString::number(value_float);
                     break;
                 case BATTERY_POWER:
                     Battery_buffer.batteryPower = value;
-                    qDebug()<<"Battery_buffer.batteryPower" << QString::number(value_float);
+                    //qDebug()<<"Battery_buffer.batteryPower" << QString::number(value_float);
                     break;
                 case BATTERY_VOLTAG_ELEVEL:
                     Battery_buffer.batteryVoltageLevel = value;
-                    qDebug()<<"Battery_buffer.batteryVoltageLevel" << QString::number(value_float);
+                    //qDebug()<<"Battery_buffer.batteryVoltageLevel" << QString::number(value_float);
                     break;
                 case MAX_VOLTAGE:
                     Battery_buffer.maxVoltage = value;
-                    qDebug()<<"Battery_buffer.maxVoltage" << QString::number(value_float);
+                    //qDebug()<<"Battery_buffer.maxVoltage" << QString::number(value_float);
                     break;
                 case MIN_VOLTAGE:
                     Battery_buffer.minVoltage = value;
-                    qDebug()<<"Battery_buffer.minVoltage" << QString::number(value_float);
+                    //qDebug()<<"Battery_buffer.minVoltage" << QString::number(value_float);
                     break;
                 case BATTERY_VOLTAGE:
                     Battery_buffer.batteryVoltage = value;
-                    qDebug()<<"Battery_buffer.batteryVoltage" << QString::number(value_float);
+                    //qDebug()<<"Battery_buffer.batteryVoltage" << QString::number(value_float);
                     break;
             }
            // qDebug()<<"vaule_float:"<<value;
@@ -359,51 +359,51 @@ void BatteryManger::DataRecieveHandle()
             }else{
                 value = "-1";
             }
-            qDebug()<<"value_float_L_H:"<<value;
+            //qDebug()<<"value_float_L_H:"<<value;
             switch(data->cmd){
                 case POWER:
                     Battery_buffer.power = value;
-                    qDebug()<<"Battery_buffer.power" << QString::number(value_float);
+                    //qDebug()<<"Battery_buffer.power" << QString::number(value_float);
                     break;
                 case DAY_POWER_DISCHARGE:
                     Battery_buffer.dayPowerDischarge = value;
-                    qDebug()<<"Battery_buffer.dayPowerDischarge" << QString::number(value_float);
+                    //qDebug()<<"Battery_buffer.dayPowerDischarge" << QString::number(value_float);
                     break;
                 case MONTH_POWER_DISCHARGE:
                     Battery_buffer.monthPowerDischarge = value;
-                    qDebug()<<"Battery_buffer.monthPowerDischarge" << QString::number(value_float);
+                    //qDebug()<<"Battery_buffer.monthPowerDischarge" << QString::number(value_float);
                     break;
                 case YEAR_POWER_DISCHARGE:
                     Battery_buffer.yearPowerDischarge = value;
-                    qDebug()<<"Battery_buffer.yearPowerDischarge" << QString::number(value_float);
+                    //qDebug()<<"Battery_buffer.yearPowerDischarge" << QString::number(value_float);
                     break;
                 case TOTAL_POWER_DISCHARGE:
                     Battery_buffer.totalPowerDischarge = value;
-                    qDebug()<<"Battery_buffer.totalPowerDischarge" << QString::number(value_float);
+                    //qDebug()<<"Battery_buffer.totalPowerDischarge" << QString::number(value_float);
                     break;
                 case DAY_POWER_CHARGE:
                     Battery_buffer.dayPowerCharge = value;
-                    qDebug()<<"Battery_buffer.dayPowerCharge" << QString::number(value_float);
+                    //qDebug()<<"Battery_buffer.dayPowerCharge" << QString::number(value_float);
                     break;
                 case MONTH_POWER_CHARGE:
                     Battery_buffer.monthPowerCharge = value;
-                    qDebug()<<"Battery_buffer.monthPowerCharge" << QString::number(value_float);
+                    //qDebug()<<"Battery_buffer.monthPowerCharge" << QString::number(value_float);
                     break;
                 case YEAR_POWER_CHARGE:
                     Battery_buffer.yearPowerCharge = value;
-                    qDebug()<<"Battery_buffer.yearPowerCharge" << QString::number(value_float);
+                    //qDebug()<<"Battery_buffer.yearPowerCharge" << QString::number(value_float);
                     break;
                 case TOTAL_POWER_CHARGE:
                     Battery_buffer.totalPowerCharge = value;
-                    qDebug()<<"Battery_buffer.totalPowerCharge" << QString::number(value_float);
+                    //qDebug()<<"Battery_buffer.totalPowerCharge" << QString::number(value_float);
                     break;
                 case BATTERY_CURRENT:
                     Battery_buffer.batteryCurrent = value;
-                    qDebug()<<"Battery_buffer.batteryCurrent" << QString::number(value_float);
+                    //qDebug()<<"Battery_buffer.batteryCurrent" << QString::number(value_float);
                     break;
                 case ARRAY_POWER:
                     Battery_buffer.arrayPower = value;
-                    qDebug()<<"Battery_buffer.arrayPower" << QString::number(value_float);
+                    //qDebug()<<"Battery_buffer.arrayPower" << QString::number(value_float);
                     break;
             }
         }
@@ -572,7 +572,7 @@ void BatteryManger::BatteryIntAndStringHandle(BatteryPara &Battery_data)
                 BatteryFIleSet(Battry_File_name,"Battary","batteryVoltage_last",Battery_data.batteryVoltage);
                 if(BattaryPara.compare(Battery_data.batteryVoltage) == 0 && frist){
                     Battery_data.batteryVoltage = "-1";
-                    qDebug()<<"same value!!!!"<<Battery_data.batteryVoltage;
+                    //qDebug()<<"same value!!!!"<<Battery_data.batteryVoltage;
                 }
                 BatteryFIleSet(Battry_File_name,"Battary","batteryVoltage",Battery_data.batteryVoltage);
                 break;
@@ -609,21 +609,25 @@ void BatteryManger::BatteryFIleSet(QString file_name, QString NodeName, QString 
 
 float BatteryManger::ReplyDataCalcul(const QByteArray& Data, quint16 Cmd)
 {
-   quint16 value_int_L;
-   quint16 value_int_H;
-   quint32 value_int_32;
+   qint16 value_int_L;
+   qint16 value_int_H;
+   qint32 value_int_32;
    float   value_float = -1;
    if(Cmd < ARRAY_POWER){
        for(int i = 0;i < Data[2];i++){
            value_int_L = quint16((quint8)Data[3] << 8) + (quint8)Data[4];
            value_float = (float)value_int_L;
-           value_float /= 100;
+           if(Cmd != BATTERY_POWER)
+               value_float /= 100;
            return   value_float;
        }
    }else if(Cmd < BATTERY_PARA_NUM){
-           value_int_L  = quint16((quint8)Data[3] << 8) + (quint8)Data[4];
-           value_int_H  = quint16((quint8)Data[5] << 8) + (quint8)Data[6];
-           value_int_32 = quint32(value_int_H << 16) + value_int_L;
+//       if(Cmd == BATTERY_CURRENT){
+//            qDebug() << "BATTERY_CURRENT = "<<Data.toHex();
+//       }
+           value_int_L  = qint16((quint8)Data[3] << 8) + (quint8)Data[4];
+           value_int_H  = qint16((quint8)Data[5] << 8) + (quint8)Data[6];
+           value_int_32 = qint32(value_int_H << 16) + value_int_L;
            value_float = (float)value_int_32;
            value_float /= 100;
            return value_float;
@@ -649,7 +653,7 @@ void BatteryManger::ReadBatteryParam(quint16 addr, quint16 ParamNum)
     Cmd_OverTime         = NORMAL;
     ReplyTimer           = REPLY_OVERTIME;
     ReadBattery.arry.append(SystemUtils::_u16ToQByteArray(ReadBattery.crc));
-    BatterySerial->write(ReadBattery.arry/*,ReadBattery.arry.size()*/);
+    BatterySerial->write(ReadBattery.arry);
     SendSem.release(1);
 }
 
@@ -710,7 +714,7 @@ void BatteryManger::Send_TimeOut()
 {
     if(SendSwitch == OPEN){
         if(SendSem.available() == 4){
-            SendPack(Send_Pack);
+        //    SendPack(Send_Pack);
         }
     }
 }
@@ -721,8 +725,8 @@ void BatteryManger::DataSendHandle()
     if(LastAOrB == A_COMMAND){
         LastAOrB = B_COMMAND;
         if(OverTimeTab[CmdIndex][1] == OVER_TIME){
-            qDebug()<<"recieve over time!";
-            qWarning("CmdIndex: %d", CmdIndex);
+           // qDebug()<<"recieve over time!";
+            //qWarning("CmdIndex: %d", CmdIndex);
             data_.cmd = CmdIndex;
             data_.arry.append(NO_REPLY_DATA);
             data_.crc = 0;

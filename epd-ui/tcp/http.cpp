@@ -1,6 +1,7 @@
 #include "http.h"
 #include <QDebug>
 #include <QtNetwork>
+#include <QHttpMultiPart>
 //#include <QtZlib/zlib.h>
 #include "tcp/StationCommand.h"
 #include "bzlib.h"
@@ -18,6 +19,7 @@ http::http(QString estationid)
 {
     manager = new QNetworkAccessManager(this);
     connect(manager,SIGNAL(finished(QNetworkReply*)),this,SLOT(ReplyFinished(QNetworkReply *)));//http_recall
+   // connect(manager,SIGNAL(readyRead(QNetworkReply*)), this, SLOT(onReadyRead(QNetworkReply*)));
     connect(this,SIGNAL(recieved_data(int)),this,SLOT(http_protocol_handle(int)));
     connect(this,SIGNAL(http_recall(int)),this,SLOT(HttpPostRequest(int)));
     Device_id = estationid;
@@ -27,7 +29,7 @@ http::http(QString estationid)
     timer->start(HTTP_TIME);
 }
 
-void http::Webservice_Request(Raw_Header *raw)
+void http::Webservice_Request_DownLoad(Raw_Header *raw)
 {
     QNetworkRequest request;
     QUrl url = "http://" + tcp_client->my_syspam.ip + ":" +QString::number(tcp_client->my_syspam.port-1) + "/webservices/SiteServWebService.asmx";
@@ -42,7 +44,7 @@ void http::Webservice_Request(Raw_Header *raw)
     request.setRawHeader("Host",raw->Host.toUtf8());
     request.setRawHeader("Connection",raw->Connection.toUtf8());
     request.setRawHeader("SOAPAction",raw->SOAPAction.toUtf8());
-    manager->post(request,raw->Soap_XML.toUtf8());
+    manager->post(request,raw->Soap_XML);
     //qDebug()<<raw->Soap_XML;
 }
 
@@ -147,6 +149,51 @@ int http::Utf16_To_Utf8(const UTF16 *sourceStart, UTF8 *targetStart, size_t outL
     return result;
 }
 
+QByteArray http::AddHttpCMD(QString arry,QString bound,QString id,const QByteArray& data)
+{
+    QByteArray body=QByteArray();
+    body.append("--"+bound+"\r\n");
+    body.append(QString("Content-Disposition: form-data; name=\"")+"cmd"+QString("\"")+QString("\r\n"));
+    body.append("\r\n");
+    body.append(arry+QString("\r\n"));
+
+    body.append("--"+bound+"\r\n");
+    body.append(QString("Content-Disposition: form-data; name=\"")+"estationid"+QString("\"")+QString("\r\n"));
+    body.append("\r\n");
+    body.append(id+QString("\r\n"));
+    //上传文件的头部
+    body.append("--"+bound+"\r\n");
+    body.append(QString("Content-Disposition: form-data; filename=\"")+"file.jpg"+QString("\"")+QString("\r\n"));
+    body.append("\r\n");
+    body.append(data);
+    body.append("\r\n");
+    body.append("--"+bound+"\r\n");
+    //上传文件内容
+    return body;
+}
+
+void http::ReadyRead_get()
+{
+    if(app_file)
+    {
+        app_file->write(mReply->readAll());
+    }
+}
+
+void http::Finished_get()
+{
+    app_file->flush();
+    app_file->close();
+    disconnect(mReply,SIGNAL(finished()),this,SLOT(Finished_get()));
+    disconnect(mReply,SIGNAL(readyRead()),this,SLOT(ReadyRead_get()));
+    mReply->deleteLater();
+    mReply = 0;
+    delete app_file;
+    app_file = 0;
+    if(GET_SOFT_FILE == http_command)
+        emit to_local(GET_SOFT_FILE);
+}
+
 
 void http::http_protocol_handle(int command)
 {
@@ -161,60 +208,10 @@ void http::http_protocol_handle(int command)
         xml_data = Bzip2DataHandle(data.toUtf8());
     }
 }
-/*
-QByteArray http::qGzipUncompress(const QByteArray &data)
-{
-    if(!data.data()){
-        qDebug()<<"no data!";
-        return  QByteArray();
-    }
-    //初始化流结构体
-    z_stream unGzipStream;
-    unGzipStream.next_in = (z_Bytef*)data.data();//输入字节起始地址
-    unGzipStream.avail_in = data.size();//输入字节大小
-    unGzipStream.zalloc = Z_NULL;
-    unGzipStream.zfree = Z_NULL;
-    unGzipStream.opaque = Z_NULL;
-    //初始化内部流状态
-    int ret = inflateInit2(&unGzipStream,16);
-    if(ret != Z_OK)
-    {
-        qDebug()<<"qGzipUncompress: The call to inflateInit2 returns the wrong value";
-        return QByteArray();
-    }
-    unsigned char buffer[4096];
-    QByteArray gzipUnomprData;
-    //使用 4MB 的缓冲区循环去接收数据,并把获取到的数据追加给 unComprData,直到获取的数据为空
-    do
-    {
-        unGzipStream.avail_out = 4096;//接收解压数据缓冲区大小
-        unGzipStream.next_out = buffer;//接收解压数据缓冲区起始地址
-        memset(buffer,0,4096);
-        //解压数据
-        ret = inflate(&unGzipStream,Z_NO_FLUSH);
-        switch(ret)
-        {
-        case Z_MEM_ERROR:
-            qDebug()<<"qGzipUncompress: Z_DATA_ERROR: Not enough memory";
-            return QByteArray();
-        case Z_NEED_DICT:
-            ret = Z_DATA_ERROR;
-        case Z_DATA_ERROR:
-            qDebug()<<"qGzipUncompress: Z_DATA_ERROR: Input data is corrupted";
-            return QByteArray();
-        }
-        if(ret != Z_FINISH)
-        {
-            gzipUnomprData.append((char*)buffer);
-        }
-    }while(unGzipStream.avail_out == 0);  
-    return gzipUnomprData;
-}
-*/
 QByteArray http::Bzip2DataHandle(QByteArray data)
 {
     QString file_name;
-    if(http_command == WEATHER_HTTP){
+    if(http_command == GET_WEATHER_HTTP){
         file_name = "./weather_information.xml";
         QFile weather_file(file_name);
         weather_file.open(QIODevice::WriteOnly);
@@ -229,10 +226,14 @@ QByteArray http::Bzip2DataHandle(QByteArray data)
         system("hwclock -w");
 
     } else {
-        if(http_command == UPDATE_LINE_HTTP)
+        if(http_command == GET_LINE_HTTP)
             file_name = "./station_line.xml";
         else if(http_command == GET_INI_HTTP)
             file_name = "./init_station.xml";
+        else if(http_command == GET_LINE_STYLE)//LineStyle.xml
+             file_name = "./LineStyle.xml";
+        else if(http_command == GET_VERSION)//LineStyle.xml
+            file_name = "./Version.xml";
         QFile line_file(file_name);
         line_file.open(QIODevice::WriteOnly);
         QTextStream xml_line_file(&line_file);
@@ -263,6 +264,7 @@ QByteArray http::Bzip2DataHandle(QByteArray data)
                 Utf16_To_Utf8(buf_utf16, buffer_utf8, 8000, lenientConversion);
                // xml_line_file<< (char *)buffer_utf8;
                 QString s = (char *)buffer_utf8;
+             //   qDebug()<<s;
                 QTextCodec *codec = QTextCodec::codecForName("utf-8");
                 QByteArray byte = codec->fromUnicode(s);
                 xml_line_file << byte;
@@ -284,6 +286,13 @@ http *http::httpInt(QString estationid)
     return &http_int;
 }
 
+void http::Webservice_Request_UpLoad(QHttpMultiPart *image_part)
+{
+    QUrl url = "http://" + tcp_client->my_syspam.ip + ":" +QString::number(tcp_client->my_syspam.port) + "/webservices/UpLodeFile.aspx";
+    QNetworkRequest request(url);
+    manager->post(request,image_part);
+}
+
 void http::ReplyFinished(QNetworkReply *reply)
 {
     if(reply->error() == QNetworkReply :: NoError){
@@ -291,11 +300,12 @@ void http::ReplyFinished(QNetworkReply *reply)
         QFile file("./http_data.xml");
         QByteArray byte = reply->readAll();
         FileUtils::StringToXML(&file, byte);
+    //    qDebug()<<"###########http_data = "<<byte;
         emit recieved_data(http_command);
     } else {
-        qDebug()<<"reply error!";
+        qDebug()<<"reply error!";//<<reply->readAll();
     }
-//    if(sem.available() == 0)
+    if(sem.available() == 0)
         sem.release(1);
     reply->deleteLater();
 }
@@ -343,10 +353,10 @@ void http::_HttpPostRequest()
             raw.Soap_XML = raw.Soap_XML.append(estationid);
             raw.Soap_XML = raw.Soap_XML.append("</gps:estationid></gps:getStationInitialization></soapenv:Body>");
             raw.Soap_XML = raw.Soap_XML.append(raw.Envelope_end);
-            Webservice_Request(&raw);
+            Webservice_Request_DownLoad(&raw);
             http_command = GET_INI_HTTP;
             break;
-        case UPDATE_LINE_HTTP://更新线路
+        case GET_LINE_HTTP://更新线路
             verifycode = "FANGYUXI";
             estationid = Device_id;
             raw.Content_Type = "text/xml;charset=UTF-8";
@@ -361,10 +371,10 @@ void http::_HttpPostRequest()
             raw.Soap_XML = raw.Soap_XML.append("</gps:estationid></gps:E_station_line_Android></soapenv:Body>");
             raw.Soap_XML = raw.Soap_XML.append(raw.Envelope_end);
             raw.Content_Length = raw.Soap_XML.size();
-            Webservice_Request(&raw);
-            http_command = UPDATE_LINE_HTTP;
+            Webservice_Request_DownLoad(&raw);
+            http_command = GET_LINE_HTTP;
             break;
-        case WEATHER_HTTP:
+        case GET_WEATHER_HTTP:
             raw.Content_Type = "text/xml;charset=UTF-8";
             raw.SOAPAction = "\"http://www.56gps.cn/getES_SMSForecost\"";
             raw.Envelope_start = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:gps=\"http://www.56gps.cn/\">";
@@ -373,8 +383,8 @@ void http::_HttpPostRequest()
             raw.Soap_XML = raw.Soap_XML.append("<soapenv:Header/><soapenv:Body><gps:getES_SMSForecost/></soapenv:Body>");
             raw.Soap_XML = raw.Soap_XML.append(raw.Envelope_end);
             raw.Content_Length = raw.Soap_XML.size();
-            Webservice_Request(&raw);
-            http_command = WEATHER_HTTP;
+            Webservice_Request_DownLoad(&raw);
+            http_command = GET_WEATHER_HTTP;
             break;
         case GET_SERVICE_TIME:
             raw.Content_Type = "application/soap+xml;charset=UTF-8;action=\"http://www.56gps.cn/getServiceTime\"";
@@ -384,13 +394,126 @@ void http::_HttpPostRequest()
             raw.Soap_XML = raw.Soap_XML.append(" <soap:Header/><soap:Body><gps:getServiceTime/></soap:Body>");
             raw.Soap_XML = raw.Soap_XML.append(raw.Envelope_end);
             raw.Content_Length = raw.Soap_XML.size();
-            Webservice_Request(&raw);
+            Webservice_Request_DownLoad(&raw);
             http_command = GET_SERVICE_TIME;
             break;
+        case GET_LINE_STYLE:
+            estationid = Device_id;
+            raw.Content_Type = "text/xml;charset=UTF-8";
+            raw.SOAPAction = "\"http://www.56gps.cn/getLineStytleXML\"";
+            raw.Envelope_start = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:gps=\"http://www.56gps.cn/\">";
+            raw.Envelope_end = "</soapenv:Envelope>";
+            raw.Soap_XML = raw.Soap_XML.append(raw.Envelope_start);
+            raw.Soap_XML = raw.Soap_XML.append("<soapenv:Header/><soapenv:Body><gps:getLineStytleXML><gps:estationid>");
+            raw.Soap_XML = raw.Soap_XML.append(estationid);
+            raw.Soap_XML = raw.Soap_XML.append("</gps:estationid></gps:getLineStytleXML></soapenv:Body>");
+            raw.Soap_XML = raw.Soap_XML.append(raw.Envelope_end);
+            raw.Content_Length = raw.Soap_XML.size();
+            Webservice_Request_DownLoad(&raw);
+            http_command = GET_LINE_STYLE;
+            break;
+        case PUT_SHOT_SCREEN:
+        {
+            estationid = Device_id;
+            char* m_buf;
+            m_buf = NULL;
+            QFile file("./Screenshot.jpg");
+            if(!file.open(QIODevice::ReadOnly)){
+                return;
+            }
+            int file_len = file.size();
+            QDataStream in(&file);
+            m_buf = new char[file_len];
+            in.readRawData( m_buf, file_len);
+            QByteArray DataContent =QByteArray (m_buf,file_len);
+            QString BOUNDARY=QUuid::createUuid().toString();
+            QByteArray body;
+            /* Content-Disposition: form-data; name="cmd"\r\n
+             * \r\n
+             * set_monitor_imge\r\n
+             * Content-Disposition: form-data; filename="file.jpg"\r\n
+             * \r\n
+             * 文件内容
+             */
+            body.append(AddHttpCMD(QString("set_monitor_imge"),BOUNDARY,estationid,DataContent));
+            QUrl url = "http://" + tcp_client->my_syspam.ip + ":" +QString::number(tcp_client->my_syspam.port-1) + "/webservices/UpLodeFile.aspx";
+            //QNetworkRequest request(url);
+            QNetworkRequest request=QNetworkRequest(QUrl(url));
+            request.setRawHeader(QString("Content-Type").toUtf8(),QString("multipart/form-data; boundary="+BOUNDARY).toUtf8());
+            request.setRawHeader(QString("Content-Length").toUtf8(),QString::number(body.length()).toUtf8());
+            manager->post(request,body);
+            http_command = PUT_SHOT_SCREEN;
+            break;
+        }
+        case PUT_ERROR_MSG:
+        {
+            estationid = Device_id;
+            QString alarm = "1";
+            raw.Content_Type = "text/xml;charset=UTF-8";
+            raw.SOAPAction = "\"http://www.56gps.cn/insertIntoAlarm\"";
+            raw.Envelope_start = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:gps=\"http://www.56gps.cn/\">";
+            raw.Envelope_end = "</soapenv:Envelope>";
+            raw.Soap_XML = raw.Soap_XML.append(raw.Envelope_start);
+            raw.Soap_XML = raw.Soap_XML.append("<soapenv:Header/><soapenv:Body><gps:insertIntoAlarm><gps:ESid>");
+            raw.Soap_XML = raw.Soap_XML.append(estationid);
+            raw.Soap_XML = raw.Soap_XML.append("</gps:ESid><gps:itype>");
+            raw.Soap_XML = raw.Soap_XML.append(alarm);
+             raw.Soap_XML = raw.Soap_XML.append("</gps:itype></gps:insertIntoAlarm></soapenv:Body>");
+            raw.Soap_XML = raw.Soap_XML.append(raw.Envelope_end);
+            raw.Content_Length = raw.Soap_XML.size();
+            Webservice_Request_DownLoad(&raw);
+            http_command = PUT_ERROR_MSG;
+            break;
+        }
+        case GET_VERSION:
+            verifycode = "FANGYUXI";
+            raw.Content_Type = "text/xml;charset=UTF-8";
+            raw.SOAPAction = "\"http://www.56gps.cn/GetVersion\"";
+            raw.Envelope_start = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:gps=\"http://www.56gps.cn/\">";
+            raw.Envelope_end = "</soapenv:Envelope>";
+            raw.Soap_XML = raw.Soap_XML.append(raw.Envelope_start);
+            raw.Soap_XML = raw.Soap_XML.append("<soapenv:Header/><soapenv:Body><gps:GetVersion><!--Optional:--><gps:verifycode>");
+            raw.Soap_XML = raw.Soap_XML.append(verifycode);
+            raw.Soap_XML = raw.Soap_XML.append("</gps:verifycode>");
+            raw.Soap_XML = raw.Soap_XML.append("</gps:GetVersion></soapenv:Body>");
+            raw.Soap_XML = raw.Soap_XML.append(raw.Envelope_end);
+            raw.Content_Length = raw.Soap_XML.size();
+            Webservice_Request_DownLoad(&raw);
+            http_command = GET_VERSION;
+            break;
+        case GET_SOFT_FILE:
+        {
+            QFile file("./Version.xml");
+            QString data;
+            data = FileUtils::ReadAllXmlNode(&file,GET_SOFT_FILE);
+
+            QNetworkRequest request;
+            QUrl url = data;
+            QFileInfo info(url.path());
+            QString fileName(info.fileName());  //获取文件名
+            if(fileName.isEmpty())
+            {
+                fileName = "index.html";
+            }
+            app_file = new QFile("./epd-ui.apk");
+            if(!app_file->open(QIODevice::WriteOnly))
+            {
+                qDebug()<<"file open error";
+                delete app_file;
+                app_file = 0;
+                return ;
+            }
+            request.setUrl(url);
+            mReply = manager->get(request);
+            http_command = GET_SOFT_FILE;
+            connect(mReply,SIGNAL(finished()),this,SLOT(Finished_get()));
+            connect(mReply,SIGNAL(readyRead()),this,SLOT(ReadyRead_get()));
+            break;
+        }
         default:
             sem.release(1);  // 无效命令
             break;
     }
     if(!command_list.isEmpty())
-        command_list.removeFirst();
+       command_list.removeFirst();
 }

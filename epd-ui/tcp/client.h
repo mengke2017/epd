@@ -26,16 +26,7 @@
 #define SINGAL_VEHICLE_END      "</line>" //单独一条线路的结尾
 #define SPLIT_CHAR              "vehicle "
 
-#if 0
-#define BACK_LED1_CFG " "
-#define BACK_LED2_CFG " "
-
-#define BACK_LED1_ON  " "
-#define BACK_LED1_OFF " "
-
-#define BACK_LED2_ON  " "
-#define BACK_LED2_OFF " "
-#else
+#if ARM_32BIT
 #define BACK_LED1_CFG "echo \"1\" > /sys/class/gpio_sw/PC22/cfg\n"
 #define BACK_LED2_CFG "echo \"1\" > /sys/class/gpio_sw/PC21/cfg\n"
 
@@ -44,6 +35,15 @@
 
 #define BACK_LED2_ON  "echo \"1\" > /sys/class/gpio_sw/PC21/data\n"
 #define BACK_LED2_OFF "echo \"0\" > /sys/class/gpio_sw/PC21/data\n"
+#else
+#define BACK_LED1_CFG " "
+#define BACK_LED2_CFG " "
+
+#define BACK_LED1_ON  " "
+#define BACK_LED1_OFF " "
+
+#define BACK_LED2_ON  " "
+#define BACK_LED2_OFF " "
 #endif
 
 #define CMD_RESTSRT         "restart"
@@ -108,6 +108,7 @@ public:
 
     QList<Msg> msg_list;
     client_syspam my_syspam;
+    bool screen_shot;
 private:
     void TCPsocket_Protocol(QByteArray DataBuf);
     void SendOK_Response(qint8 direction,qint16 name,qint16 serial);
@@ -135,6 +136,7 @@ signals:
     void get_initpara();
     void http_command(int);
     void to_ui_bulletin(QList<Msg>);
+    void client_shot();
 private slots:
     void ReadMsg(void);
     void ConnectSuccess(void);

@@ -73,8 +73,8 @@
 #define CHARGE_MANAGER                   58//电池充放电管理模式
 
 
-#define NO_REPLY_DATA 0xff
-#define SAME_DATA     0xff
+#define NO_REPLY_DATA 0x77
+#define SAME_DATA     0x77
 
 #define COMMAND_1    0
 #define COMMAND_2    1

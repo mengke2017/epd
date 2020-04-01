@@ -317,7 +317,7 @@ QString FileUtils::ReadAllXmlNode(QFile *file, int command)
     QTextCodec *codeC = QTextCodec::codecForName("UTF-8");
     if(file->open(QIODevice::ReadOnly)){
         switch(command){
-            case UPDATE_LINE_HTTP:
+            case GET_LINE_HTTP:
                 Node_Name     = "<E_station_line_AndroidResult>";
                 Node_Name_end = "</E_station_line_AndroidResult>";
                 break;
@@ -325,13 +325,28 @@ QString FileUtils::ReadAllXmlNode(QFile *file, int command)
                 Node_Name = "<getStationInitializationResult>";
                 Node_Name_end = "</getStationInitializationResult>";
                 break;
-            case WEATHER_HTTP:
+            case GET_WEATHER_HTTP:
                 Node_Name = "<getES_SMSForecostResult>";
                 Node_Name_end = "</getES_SMSForecostResult>";
                 break;
             case GET_SERVICE_TIME:
                 Node_Name = "<getServiceTimeResult>";
                 Node_Name_end = "</getServiceTimeResult>";
+                //  qWarning("GET_SERVICE_TIME");
+                break;
+             case GET_LINE_STYLE:
+                Node_Name = "<getLineStytleXMLResult>";
+                Node_Name_end = "</getLineStytleXMLResult>";
+                //  qWarning("GET_LINE_STYLE");
+                break;
+             case GET_VERSION:
+                Node_Name = "<GetVersionResult>";
+                Node_Name_end = "</GetVersionResult>";
+                //  qWarning("GET_VERSION");
+                break;
+             case GET_SOFT_FILE:
+                Node_Name = "download=\"";
+                Node_Name_end = "\" time";
                 //  qWarning("GET_SERVICE_TIME");
                 break;
         }

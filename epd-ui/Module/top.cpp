@@ -86,17 +86,17 @@ TopWidget::TopWidget()
     over_stat_name->setAlignment(Qt::AlignCenter);
     over_stat_name->setText("剩余站点数");
 
-    weath_list_ico<<"image: url(:/new/prefix1/baoxue.bmp);"<<"image: url(:/new/prefix1/baoyu.bmp);"
-                 <<"image: url(:/new/prefix1/dabaoxue.bmp);"<<"image: url(:/new/prefix1/dabaoyu.bmp);"
-                 <<"image: url(:/new/prefix1/daxie.bmp);"<<"image: url(:/new/prefix1/dayu.bmp);"
-                 <<"image: url(:/new/prefix1/duoyun.bmp);"<<"image: url(:/new/prefix1/leizhengyu.bmp);"
-                 <<"image: url(:/new/prefix1/mai.bmp);"<<"image: url(:/new/prefix1/qing.bmp);"
-                 <<"image: url(:/new/prefix1/shachengbao.bmp);"<<"image: url(:/new/prefix1/taifeng.bmp);"
-                 <<"image: url(:/new/prefix1/teidabaoyu.bmp);"<<"image: url(:/new/prefix1/wu.bmp);"
-                 <<"image: url(:/new/prefix1/xiaoxie.bmp);"<<"image: url(:/new/prefix1/xiaoyu.bmp);"
-                 <<"image: url(:/new/prefix1/ying.bmp);"<<"image: url(:/new/prefix1/yujiaxie.bmp);"
-                 <<"image: url(:/new/prefix1/zhengyu.bmp);"<<"image: url(:/new/prefix1/zhongxie.bmp);"
-                 <<"image: url(:/new/prefix1/zhongyu.bmp);";
+    weath_list_ico<<"image: url(:/new/prefix1/baoxue.bmp);"<<"image: url(:/new/prefix1/baoyu.bmp);"  // 0 1
+                 <<"image: url(:/new/prefix1/dabaoxue.bmp);"<<"image: url(:/new/prefix1/dabaoyu.bmp);"  // 2 3
+                 <<"image: url(:/new/prefix1/daxie.bmp);"<<"image: url(:/new/prefix1/dayu.bmp);"  // 4 5
+                 <<"image: url(:/new/prefix1/duoyun.bmp);"<<"image: url(:/new/prefix1/leizhengyu.bmp);"  // 6 7
+                 <<"image: url(:/new/prefix1/mai.bmp);"<<"image: url(:/new/prefix1/qing.bmp);"  // 8 9
+                 <<"image: url(:/new/prefix1/shachengbao.bmp);"<<"image: url(:/new/prefix1/taifeng.bmp);"  // 10 11
+                 <<"image: url(:/new/prefix1/teidabaoyu.bmp);"<<"image: url(:/new/prefix1/wu.bmp);"  // 12 13
+                 <<"image: url(:/new/prefix1/xiaoxie.bmp);"<<"image: url(:/new/prefix1/xiaoyu.bmp);"  // 14 15
+                 <<"image: url(:/new/prefix1/ying.bmp);"<<"image: url(:/new/prefix1/yujiaxie.bmp);"  // 16 17
+                 <<"image: url(:/new/prefix1/zhengyu.bmp);"<<"image: url(:/new/prefix1/zhongxie.bmp);"  // 18 19
+                 <<"image: url(:/new/prefix1/zhongyu.bmp);";  // 20
     weath_list_text<<"暴雪"<<"暴雨"<<"大暴雪"<<"大暴雨"<<"大雪"<<"大雨"<<"多云"<<"雷阵雨"<<"霾"<<"晴"
                   <<"沙尘暴"<<"台风"<<"特大暴雨"<<"雾"<<"小雪"<<"小雨"<<"阴"<<"雨夹雪"<<"阵雨"<<"中雪"<<"中雨";
 }
@@ -157,29 +157,58 @@ void TopWidget::updateWeather(QString weather, QString temp = "25")
     }
     if (i >= weath_list_text.length()) {
        // qWarning("222");
-        if(weath_list_text.at(i).indexOf("云")) {
+
+//        if(weath_list_text.last().indexOf("云")) {
+//            ico = weath_list_ico.at(6);
+//        } else if(weath_list_text.at(i).indexOf("阵雨")) {
+//            ico = weath_list_ico.at(7);
+//        } else if(weath_list_text.at(i).indexOf("中雨")) {
+//            ico = weath_list_ico.at(20);
+//        } else if(weath_list_text.at(i).indexOf("大雨")) {
+//            ico = weath_list_ico.at(5);
+//        } else if(weath_list_text.at(i).indexOf("大暴雨")) {
+//            ico = weath_list_ico.at(3);
+//        } else if(weath_list_text.at(i).indexOf("雨")) {
+//            ico = weath_list_ico.at(16);
+//        } else if(weath_list_text.at(i).indexOf("雨夹雪")) {
+//            ico = weath_list_ico.at(17);
+//        } else if(weath_list_text.at(i).indexOf("中雪")) {
+//            ico = weath_list_ico.at(19);
+//        } else if(weath_list_text.at(i).indexOf("暴雪")) {
+//            ico = weath_list_ico.at(0);
+//        } else if(weath_list_text.at(i).indexOf("霾")) {
+//            ico = weath_list_ico.at(8);
+//        } else if(weath_list_text.at(i).indexOf("沙")) {
+//            ico = weath_list_ico.at(10);
+//        } else if(weath_list_text.at(i).indexOf("雾")) {
+//            ico = weath_list_ico.at(13);
+//        } else {
+//            ico = weath_list_ico.at(6);
+//        }
+
+        if(weather.indexOf("云") >= 0) {
             ico = weath_list_ico.at(6);
-        } else if(weath_list_text.at(i).indexOf("阵雨")) {
+        } else if(weather.indexOf("阵雨") >= 0) {
             ico = weath_list_ico.at(7);
-        } else if(weath_list_text.at(i).indexOf("中雨")) {
+        } else if(weather.indexOf("中雨") >= 0) {
             ico = weath_list_ico.at(20);
-        } else if(weath_list_text.at(i).indexOf("大雨")) {
+        } else if(weather.indexOf("大雨") >= 0) {
             ico = weath_list_ico.at(5);
-        } else if(weath_list_text.at(i).indexOf("大暴雨")) {
+        } else if(weather.indexOf("大暴雨") >= 0) {
             ico = weath_list_ico.at(3);
-        } else if(weath_list_text.at(i).indexOf("雨")) {
-            ico = weath_list_ico.at(16);
-        } else if(weath_list_text.at(i).indexOf("雨夹雪")) {
+        } else if(weather.indexOf("雨") >= 0) {
+            ico = weath_list_ico.at(15);
+        } else if(weather.indexOf("雨夹雪") >= 0) {
             ico = weath_list_ico.at(17);
-        } else if(weath_list_text.at(i).indexOf("中雪")) {
+        } else if(weather.indexOf("中雪") >= 0) {
             ico = weath_list_ico.at(19);
-        } else if(weath_list_text.at(i).indexOf("暴雪")) {
+        } else if(weather.indexOf("暴雪") >= 0) {
             ico = weath_list_ico.at(0);
-        } else if(weath_list_text.at(i).indexOf("霾")) {
+        } else if(weather.indexOf("霾") >= 0) {
             ico = weath_list_ico.at(8);
-        } else if(weath_list_text.at(i).indexOf("沙")) {
+        } else if(weather.indexOf("沙") >= 0) {
             ico = weath_list_ico.at(10);
-        } else if(weath_list_text.at(i).indexOf("雾")) {
+        } else if(weather.indexOf("雾") >= 0) {
             ico = weath_list_ico.at(13);
         } else {
             ico = weath_list_ico.at(6);

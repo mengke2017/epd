@@ -26,15 +26,19 @@ signals:
     void read_weather();
     void read_line();
     void read_initpara();
+    void read_line_style();
     void update_bulletin(QString);
     void ui_start(bool);
     void to_SetIP(QString,uint32,uint32);
+    void shot_screen();
 public slots:
     void ReadVehicleLocation(void);
     void start(void);
     void serTimerOut(uint current_sec);
     void ui_handle(int);
     void comSlot();
+    void to_http(uint8 command);
+    void soltShotScreen();
 //    void ui_bulletin(QList<Msg>);
 };
 

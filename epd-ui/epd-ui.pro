@@ -33,7 +33,6 @@ SOURCES += \
     Module/mainline.cpp \
     Module/top.cpp \
     Module/stationname.cpp \
-    e-paper/miniGUI.c \
     e-paper/IT8951_USB.c \
     e-paper/IT8951_CMD.c \
     tcp/client.cpp \
@@ -43,7 +42,8 @@ SOURCES += \
     systemutils.cpp \
     e-paper/e-paper.cpp \
     battery/batterymanager.cpp \
-    battery/batterylist.cpp
+    battery/batterylist.cpp \
+    e-paper/miniGUI_n.c
 
 HEADERS += \
         mainwindow.h \
@@ -53,7 +53,6 @@ HEADERS += \
     Module/childline.h \
     Module/stationname.h \
     customize.h \
-    e-paper/miniGUI.h \
     e-paper/IT8951_USB.h \
     e-paper/IT8951_CMD.h \
     tcp/client.h \
@@ -65,7 +64,8 @@ HEADERS += \
     systemutils.h \
     e-paper/e-paper.h \
     battery/batterymanager.h \
-    battery/batterylist.h
+    battery/batterylist.h \
+    e-paper/miniGUI_n.h
 
 FORMS += \
         mainwindow.ui

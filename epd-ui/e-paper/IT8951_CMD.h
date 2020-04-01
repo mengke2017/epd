@@ -10,7 +10,7 @@ typedef unsigned char  uint8_t;
 typedef unsigned short uint16_t;
 typedef unsigned int   uint32_t;
 
-#define LINUX_32BIT  1
+#define LINUX_32BIT 1
 
 #define SENSE_LEN		(256)
 #define BLOCK_LEN		(32)

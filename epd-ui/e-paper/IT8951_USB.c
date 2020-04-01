@@ -1,6 +1,8 @@
 #include <math.h>
+#include <stdio.h>
+//#include <io.h>
 #include "IT8951_USB.h"
-#include "miniGUI.h"
+#include "miniGUI_n.h"
 
 //#define _TEST_SW_ 0
 
@@ -34,7 +36,7 @@ void IT8951_Cmd_Inquiry(void) {
 	int fd = open(path, O_RDWR);
 	
 	if (fd>0) {
-		printf("\nCommand: Inquiry\n");
+    //	printf("\nCommand: Inquiry\n");
 		
 		status = IT8951_CMD_INQ(fd, page_code, evpd, p_hdr);
 		if (status!=0) {
@@ -44,7 +46,7 @@ void IT8951_Cmd_Inquiry(void) {
 //			#if defined(_TEST_SW_)
 			int i;
 			for(i=8; i<36; i++){
-			  printf("%c", data_buffer[i]);
+        //	  printf("%c", data_buffer[i]);
 			}
 			printf("\n");
 //			#endif
@@ -424,19 +426,12 @@ void EPD_display_Area(DWord starX, DWord starY, DWord width, DWord High, int mod
     IT8951_Cmd_LoadImageArea((Sys_info.uiImageBufBase), starX, starY, gulPanelW, gulPanelH);  //
     IT8951_Cmd_DisplayArea(starX, starY, width, High, mode, (Sys_info.uiImageBufBase), 1);
 }
-int dis_epd(uint8_t mode) {
+int dis_epd(const char* filePath, uint8_t mode) {
     static int i = -1;
-    if(Show_linuxfb(0, 0) == 0) {  // 不同
-        usleep(10000);
-        while(Show_linuxfb(0, 0) == 0) {
-            int c = 0;
-            c++;
-          //  printf("112233");
-            usleep(10000);
-            if(c > 10)
-                break;
-        }
+
 #if LINUX_32BIT
+    if (filePath != NULL) {
+        Show_bmp(0, 0, filePath);
         i ++;
         if(mode == GLOBAL_REF || mode == PART_REF) {
             EPD_display_Area(0,0,gulPanelW,gulPanelH,mode);
@@ -448,10 +443,11 @@ int dis_epd(uint8_t mode) {
                 EPD_display_Area(0,0,gulPanelW,gulPanelH,PART_REF);
             }
         }
+//    }
 #endif
         return 0;
     }
-    return 1;
+    return -1;
 }
 void init_device(void) {
 
@@ -468,7 +464,9 @@ void init_device(void) {
 
     // set full white
     gpFrameBuf = (unsigned char*)malloc(sizeof(unsigned char)*(gulPanelW*gulPanelH));
+   // EPD_Clear(0xF0);
     EPD_Clear(0xF0);
+
 
     EPD_display_Area(0, 0, gulPanelW, gulPanelH, GLOBAL_REF);
 }

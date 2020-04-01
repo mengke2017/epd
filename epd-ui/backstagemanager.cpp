@@ -4,7 +4,7 @@
 #include <QDebug>
 #include <QDateTime>
 
-#define SERIAL_PATH  "/dev/ttyS2"
+#define SERIAL_PATH  "/dev/ttyS3"
 
 BackstageManager::BackstageManager(QObject *parent):
     QObject(parent)
@@ -21,6 +21,7 @@ void BackstageManager::start()
 //    connect(serial_2,SIGNAL(hasdata()),this,SLOT(comSlot()));
     connect(this,SIGNAL(to_SetIP(QString,uint32,uint32)),tcp_client,SLOT(ConnectToHost(QString,uint32,uint32)));
     connect(tcp_client,SIGNAL(veh_data_re()),this,SLOT(ReadVehicleLocation()));
+    connect(tcp_client,SIGNAL(client_shot()),this,SLOT(soltShotScreen()));
 
     client_syspam my_syspam;
 
@@ -41,6 +42,8 @@ void BackstageManager::start()
         //设置停止位
         serial_2->setStopBits(QSerialPort::OneStop);
         connect(serial_2,SIGNAL(readyRead()),this,SLOT(comSlot()), Qt::QueuedConnection);
+    } else {
+        qWarning()<<"open serial_2 faile!";
     }
 
 //    serial_2->openPort(name,BAUD9600,DATA_8,PAR_NONE,STOP_1,FLOW_OFF,TIME_OUT);
@@ -75,49 +78,49 @@ void BackstageManager::serTimerOut(uint current_sec)
     static int16_t count = -1;
     count++;
     if (count >= 360 || count == 0) { // 10*36 hour
-//        qWarning("11111");
-        if(count == 0) {  // first
-            emit tcp_client->http_command(GET_INI_HTTP);
-            emit tcp_client->http_command(UPDATE_LINE_HTTP);
-            WeatherRequest();
-        }
         WeatherRequest();
         count = 0;
     }
-
     for(int i = 0; i < list.length(); i ++) {
         if(list.at(i).star_sec <= current_sec && list.at(i).end_sec >= current_sec) {
             emit update_bulletin(list.at(i).value);
         }
     }
+   // if(tcp_client->screen_shot)
 }
+
 void BackstageManager::WeatherRequest(void)
 {
-//    qWarning()<<"2222";
-//    BatteryPara batteryPara;
-//    battery->ReadBatteryPara(&batteryPara);
-    emit tcp_client->http_command(WEATHER_HTTP);
-//    qWarning()<<"22222";
-//    sleep(1);
-
-//    sleep(1);
-    emit tcp_client->http_command(GET_SERVICE_TIME);
-//    qWarning()<<"111111";
-//    timer->stop();
+    if(tcp_client->isConnected()) {
+        emit tcp_client->http_command(GET_WEATHER_HTTP);
+        emit tcp_client->http_command(GET_SERVICE_TIME);
+    //    emit tcp_client->http_command(PUT_ERROR_MSG);
+    }
 }
 
 void BackstageManager::ui_handle(int uiflag)
 {
+//    qWarning("uiflag: %d", uiflag);
     switch(uiflag)
     {
-    case WEATHER_HTTP:
+    case GET_WEATHER_HTTP:
         emit read_weather();
         break;
-    case UPDATE_LINE_HTTP:
+    case GET_LINE_HTTP:
         emit read_line();
         break;
     case GET_INI_HTTP:
         emit read_initpara();
+        break;
+    case GET_LINE_STYLE:
+        emit read_line_style();
+        break;
+    case GET_VERSION:
+        emit tcp_client->http_command(GET_SOFT_FILE);
+        break;
+    case GET_SOFT_FILE:
+        //system("reboot");
+            qWarning("reboot");
         break;
     }
 }
@@ -126,31 +129,75 @@ void BackstageManager::comSlot() {
     QString ip_tcp;
     uint32 port_tcp = 0;
     uint32 dev_id_tcp = 0;
+    int16 star_index, end_index;
     QString buf_string;
-    QByteArray data = serial_2->readAll();
-    QString str_data = data;
- //   qDebug() << "@@data@@:" <<data.toHex();
-    if(str_data.at(0) == '$'){//TCP配置
-        do{
-           str_data.remove(str_data.right(1));
-        }while(str_data.right(1) != "~");
-        str_data.remove(str_data.right(1));
-        str_data.remove(str_data.left(1));
-        if(!str_data.isEmpty()){
-            QStringList TCP_pam = str_data.split(",");
-            if(TCP_pam.size()>0){
-                buf_string = TCP_pam.at(0);
+    static QByteArray data;
+    QString str_data;
+    data += serial_2->readAll();
+   // qDebug() << "@@data@@:" <<data.toHex();
+
+    star_index = data.indexOf('$');
+    if(star_index < 0) {
+        data.remove(0,data.size());
+        goto error;
+    }
+    end_index = data.indexOf('\n');
+    if(end_index <= 0) {
+        return;
+    } else {
+        if (data.at(end_index-1) != '\r') {
+            return;
+        }
+    }
+    data = data.mid(star_index+1, end_index-star_index);
+
+    do{
+        star_index = data.indexOf('$');
+        data = data.mid(star_index+1);
+    }while(data.indexOf('$')>=0);
+
+    str_data = data;
+    qWarning()<<"str_data: "<<str_data;
+    if(!str_data.isEmpty()){
+        QStringList TCP_pam = str_data.split(",");
+        if(TCP_pam.size()==3){
+            buf_string = TCP_pam.at(0);
+            if(buf_string.size() > 3)
                 if(buf_string.left(3) == "ip:")
                     ip_tcp = buf_string.mid(3);
-                buf_string = TCP_pam.at(1);
+
+            buf_string = TCP_pam.at(1);
+            if(buf_string.size() > 5)
                 if(buf_string.left(5) == "port:")
                     port_tcp = (buf_string.mid(5)).toInt();
-                buf_string = TCP_pam.at(2);
-               // qDebug()<<device_id;
+
+            buf_string = TCP_pam.at(2);
+            if(buf_string.size() > 2)
                 if(buf_string.left(3) == "id:")
                     dev_id_tcp = (buf_string.mid(3)).toInt();
-            }
+            if(ip_tcp.isEmpty())
+                goto error;
+            emit to_SetIP(ip_tcp,port_tcp,dev_id_tcp);
+            QString tmp = "OK\n$ip:"+ip_tcp+",port:"+QString::number(port_tcp)
+                    +",id:"+QString::number(dev_id_tcp);
+            tmp.append(0x0d).append(0x0a);
+            serial_2->write(tmp.toLatin1());
+            data.remove(0,data.size());
+            //qWarning()<<"data: "<<data.toHex();
+            return;
         }
-        emit to_SetIP(ip_tcp,port_tcp,dev_id_tcp);
     }
+error:
+    serial_2->write("config error!");
+    data.remove(0,data.size());
+    //qWarning()<<"data: "<<data.toHex();
+}
+
+void BackstageManager::to_http(uint8 command) {
+
+    tcp_client->http_command(command);
+}
+
+void BackstageManager::soltShotScreen() {
+    emit shot_screen();
 }
