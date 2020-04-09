@@ -18,9 +18,8 @@ typedef struct BatterySysPam{
 class BatteryList : public QObject
 {
     Q_OBJECT
-protected:
-    explicit BatteryList(QObject *parent = 0);
 public:
+    explicit BatteryList(QObject *parent = 0);
     static BatteryList* GetInstans();
     BatterySyspam* get();
     bool add(const BatterySyspam& info);

@@ -76,6 +76,9 @@ void StationNmae::SetText(QString text)
 
 void StationNmae::setSelect()
 {
-    name_widget->setStyleSheet("#name_widget{border-image: url(:/new/prefix1/select.bmp);}");
+    //name_widget->setStyleSheet("#name_widget{border-image: url(:/new/prefix1/select.bmp);}");
+    name_label->setStyleSheet("#name_label{color: rgb(255, 255, 255);}");
+    name_label2->setStyleSheet("#name_label2{color: rgb(255, 255, 255);}");
+    name_widget->setStyleSheet("#name_widget{background-color: rgb(6, 6, 6);}");
     name_widget->update();
 }

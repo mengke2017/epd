@@ -88,6 +88,7 @@ public:
     QByteArray Bzip2DataHandle( QByteArray data);
     static http * httpInt(QString estationid);
     client *tcp_client;
+    QList<QString> alarm_list;
 
 //    QSemaphore cmd_sem;
 private:
@@ -107,6 +108,7 @@ signals:
     void recieved_data(int);
     void http_recall(int);
     void to_local(int);
+    void to_battery_time(QString);
 private slots:
     void ReadyRead_get();//Finished_get
     void Finished_get();

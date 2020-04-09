@@ -56,6 +56,7 @@ private:
 
 signals:
     void update_shot_screen(uint8 command);
+    void set_led(uint8);
 private :
     void createMainpage(QList<PageInfo> page_info);
 //    int8_t createLine(int16_t page_number, int16_t count);
@@ -65,7 +66,7 @@ private :
     void showNextPage(int page);
     uint8 showMainpage();
     uint8 showChildpage();
-    QString read_xml_node(QString *,QString,QString,bool);
+//    QString read_xml_node(QString *,QString,QString,bool);
 public slots:
     void update_status_slot(QString,QString,QList<qint8>);
     void read_lineinfo_xml();

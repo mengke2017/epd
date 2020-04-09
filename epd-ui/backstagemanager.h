@@ -7,6 +7,7 @@
 #include <QTimer>
 #include "customize.h"
 #include "tcp/http.h"
+#include "battery/batterymanager.h"
 #include <QSerialPort>
 
 class BackstageManager : public QObject
@@ -19,6 +20,7 @@ private:
     client           *tcp_client;
     QSerialPort       *serial_2;
     http             *http_client;
+    BatteryManger    *battery;
     QTimer           *timer;
     void WeatherRequest();
 signals:
@@ -39,6 +41,8 @@ public slots:
     void comSlot();
     void to_http(uint8 command);
     void soltShotScreen();
+    void slot_set_led(uint8);
+    void solt_http_alarm(QString alarm);
 //    void ui_bulletin(QList<Msg>);
 };
 

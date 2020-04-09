@@ -19,6 +19,7 @@ public:
     static QByteArray readLocalFile(const QString& path);
     static QString readAllText(const QString &fileName);
     static QString getFullPath(const QString& fileName);
+    static QString read_xml_node(QString *xml, QString node, QString node_end, bool cut);
 
     static bool writeText(const QString& fileName, QString& content);
     static bool existsFullPath(const QString& fileName);

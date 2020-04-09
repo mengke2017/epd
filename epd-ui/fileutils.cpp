@@ -364,3 +364,41 @@ QString FileUtils::ReadAllXmlNode(QFile *file, int command)
     }
     return data;
 }
+
+
+QString FileUtils::read_xml_node(QString *xml, QString node, QString node_end, bool cut) {  // 若node_end没有，则默认为"/>"
+    QString value;
+    int star_index, end_index, star_node_index;
+    if(xml->isEmpty())
+        return "";
+    star_index = xml->indexOf(node);
+    if(star_index < 0) {
+        node = "&lt;"+node.mid(1);
+        star_index = xml->indexOf(node);
+        if(star_index < 0)
+           return "";
+    }
+
+    star_node_index = star_index + node.length();
+
+    if(node_end.isEmpty()) {
+        node_end = "/>";
+    }
+    end_index = xml->indexOf(node_end);
+
+    if(end_index < 0) {
+        node_end = "/>";
+        end_index = xml->indexOf(node_end);
+        if(end_index < 0) {
+            node_end = node_end.remove(">")+"&gt;";
+            end_index = xml->indexOf(node_end);
+            if(end_index < 0)
+               return "";
+        }
+    }
+
+    value = xml->mid(star_node_index, end_index-star_node_index);
+    if(cut)
+        xml->remove(star_index, end_index-star_index+node_end.length());
+    return value;
+}

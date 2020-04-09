@@ -8,7 +8,7 @@
 #define BATTERY_UART   "/dev/ttyS5"
 
 QSemaphore SendSem(4);
-quint8 OverTimeTab[BATTERY_PARA_NUM][2] =
+quint8 OverTimeTab[WARING_COMMAND_NUM][2] =
 {
     {DAY_OR_NIGHT,0},
     {ARRAY_VOLTAGE,0},
@@ -33,18 +33,23 @@ quint8 OverTimeTab[BATTERY_PARA_NUM][2] =
     {TOTAL_POWER_CHARGE,0},//        20//
     {POWER,0},//                     21//
     {BATTERY_CURRENT,0},//           22//
+    {DEVICE_OVERHEAT,0},//         23//
+    {BATTERY_STATUS,0},//        24//
+    {CHARGE_STATUS,0},//                     25//
+    {DISCHARGE_STATUS,0},//           26//
 };
 BatteryManger::BatteryManger(QObject *parent) :
     QObject(parent)
 {
     SendSwitch  = OPEN;
+    SendSwitch_Warn = CLOSE;
+    SendSwitch_Write = CLOSE;
 
     for(quint16 i = 0; i < BATTERY_PARA_NUM; i++){
         OverTimeTab[i][1] = NORMAL;
     }
 
-    list = BatteryList::GetInstans();
-
+    list = new BatteryList(this);
     BatterySerial = new QSerialPort(this);
     BatterySerial->setPortName(BATTERY_UART);
     if(BatterySerial->open(QIODevice::ReadWrite))
@@ -99,8 +104,10 @@ void BatteryManger::SendPack(BatterySyspam& data)
 {
     SendSem.acquire(2);
     data.arry.append(SystemUtils::_u16ToQByteArray(data.crc));
-    BatterySerial->write(data.arry/*,data.arry.size()*/);
-    //qWarning()<<"send: "<<data.arry.toHex()<<"index:"<<QString::number(data.cmd);
+    if(BatterySerial->isOpen())
+        BatterySerial->write(data.arry/*,data.arry.size()*/);
+
+ //   qWarning()<<"send: "<<data.arry.toHex()<<"index:"<<QString::number(data.cmd);
     OverTimeTab[data.cmd][1] = NORMAL;
     ReplyTimer = REPLY_OVERTIME;
     LastAOrB   = A_COMMAND;
@@ -230,6 +237,23 @@ void BatteryManger::Update_SendPack(quint16 index)
             Send_Pack.arry[3] = quint8(A37_BATTERY_CURRENT_L);
             Send_Pack.arry[4] = 0x00;
             Send_Pack.arry[5] = 0x02;
+            break;
+        case DEVICE_OVERHEAT:
+            Send_Pack.arry[1] = FUNC_ONLY_READ_2;
+            Send_Pack.arry[2] = (A1_DEVICE_OVERHEAT & 0xff00) >> 8;
+            Send_Pack.arry[3] = quint8(A1_DEVICE_OVERHEAT);
+                break;
+        case BATTERY_STATUS:
+            Send_Pack.arry[2] = (A15_BATTERY_STATUS & 0xff00) >> 8;
+            Send_Pack.arry[3] = quint8(A15_BATTERY_STATUS);
+            break;
+        case CHARGE_STATUS:
+            Send_Pack.arry[2] = (A16_CHARGE_STATUS & 0xff00) >> 8;
+            Send_Pack.arry[3] = quint8(A16_CHARGE_STATUS);
+            break;
+        case DISCHARGE_STATUS:
+            Send_Pack.arry[2] = (A17_DISCHARGE_STATUS & 0xff00) >> 8;
+            Send_Pack.arry[3] = quint8(A17_DISCHARGE_STATUS);
             break;
     }
     Send_Pack.crc = CRC16_Modbus(Send_Pack.arry);
@@ -412,7 +436,70 @@ void BatteryManger::DataRecieveHandle()
     BatteryIntAndStringHandle(Battery_buffer);
 
 }
-
+QByteArray BatteryManger::ReplyDataCal(const QByteArray &Data, quint16 Cmd)
+{
+    QByteArray data;
+    if(Cmd == DEVICE_OVERHEAT){
+        data.resize(1);
+        data[0] = Data[3];
+    }else{
+        data.resize(2);
+        data[0] = Data[3];
+        data[1] = Data[4];
+    }
+    return data;
+}
+void BatteryManger::DataRecieveHandleWarnCommand(void)
+{
+    BatterySyspam *data;
+    QByteArray   value;
+    quint16  value_int = 0;
+    QString alarm;
+    while((data = list->get()) != NULL){
+        if(NO_REPLY_DATA != data->arry[0]){
+            value = ReplyDataCal(data->arry,data->cmd);
+            qDebug()<<"Warin Value ======" << value.toHex();
+        }
+        switch(data->cmd){
+            case DEVICE_OVERHEAT:
+                if((quint8)value[0] != 0x00){
+                    qDebug()<<"Over Heat!";
+                    BatteryWarn_buffer.DeviceOverHeat = ((0x14) << 16) + (quint8)value[0];
+                    alarm = QString::number(BatteryWarn_buffer.DeviceOverHeat);
+                    emit to_alarm(alarm);
+                }
+                break;
+            case BATTERY_STATUS:
+                value_int = (quint16)(((quint8)value[0] << 8) + (quint8)value[1]);
+                if(value_int != 0x00){
+                    qDebug()<<"BATTERY_STATUS ERROR!";
+                    BatteryWarn_buffer.BatteryStatus = ((0x15) << 16) + value_int;
+                    alarm = QString::number(BatteryWarn_buffer.BatteryStatus);
+                    emit to_alarm(alarm);
+                }
+                break;
+            case CHARGE_STATUS:
+                value_int = (quint16)(((quint8)value[0] << 8) + (quint8)value[1]);
+                if(value_int != 0x01){
+                    qDebug()<<"CHARGE_STATUS ERROR!";
+                    BatteryWarn_buffer.ChargeStatus = ((0x16) << 16) + value_int;
+                    alarm = QString::number(BatteryWarn_buffer.ChargeStatus);
+                    emit to_alarm(alarm);
+                }
+                break;
+            case DISCHARGE_STATUS:
+                value_int = (quint16)(((quint8)value[0] << 8) + (quint8)value[1]);
+                if(value_int != 0x01){
+                    qDebug()<<"DISCHARGE_STATUS ERROR!";
+                    BatteryWarn_buffer.DischargeStatus = ((0x17) << 16) + value_int;
+                    alarm = QString::number(BatteryWarn_buffer.DischargeStatus);
+                    emit to_alarm(alarm);
+                }
+                break;
+        }
+        list->remove();
+    }
+}
 void BatteryManger::BatteryIntAndStringHandle(BatteryPara &Battery_data)
 {
     QString BattaryPara;
@@ -622,15 +709,23 @@ float BatteryManger::ReplyDataCalcul(const QByteArray& Data, quint16 Cmd)
            return   value_float;
        }
    }else if(Cmd < BATTERY_PARA_NUM){
-//       if(Cmd == BATTERY_CURRENT){
-//            qDebug() << "BATTERY_CURRENT = "<<Data.toHex();
-//       }
+       if(Cmd == BATTERY_CURRENT){
+           value_int_L  = qint16((quint8)Data[3] << 8) + (quint8)Data[4];
+           if(value_int_L&0x8000) {
+               value_int_L &= 0x7fff;
+               value_float = value_int_L-32768;
+           } else {
+               value_float = value_int_L;
+           }
+  //         qDebug() << "BATTERY_CURRENT = "<<QString::number(value_float);
+       } else {
            value_int_L  = qint16((quint8)Data[3] << 8) + (quint8)Data[4];
            value_int_H  = qint16((quint8)Data[5] << 8) + (quint8)Data[6];
            value_int_32 = qint32(value_int_H << 16) + value_int_L;
            value_float = (float)value_int_32;
-           value_float /= 100;
-           return value_float;
+       }
+       value_float /= 100;
+       return value_float;
    }
    return value_float;
 }
@@ -648,52 +743,39 @@ void BatteryManger::ReadBatteryParam(quint16 addr, quint16 ParamNum)
     ReadBattery.arry[5]  = quint8(ParamNum);
     ReadBattery.crc      = CRC16_Modbus(ReadBattery.arry);
 
-    Last_Comannd         = addr;
+    //Last_Comannd         = addr;
     LastAOrB             = B_COMMAND;
     Cmd_OverTime         = NORMAL;
     ReplyTimer           = REPLY_OVERTIME;
     ReadBattery.arry.append(SystemUtils::_u16ToQByteArray(ReadBattery.crc));
-    BatterySerial->write(ReadBattery.arry);
+    if(BatterySerial->isOpen())
+        BatterySerial->write(ReadBattery.arry);
     SendSem.release(1);
 }
 
-void BatteryManger::WriteBatteryParam(quint16 addr, quint16 addr_num, quint8 data_num, const QByteArray& data)
-{
-    BatterySyspam WriteSyspam;
-    SendSem.acquire(2);
-    int j = 0;
-    WriteSyspam.arry[0] = DEV_ID;
-    WriteSyspam.arry[1] = FUNC_WRITE;
-    WriteSyspam.arry[2] = (addr & 0xff00) >> 8;
-    WriteSyspam.arry[3] = quint8(addr);
-    WriteSyspam.arry[4] = (addr_num & 0xff00) >> 8;
-    WriteSyspam.arry[5] = quint8(addr_num);
-    for(int i = 6;i < data_num + 6;i++){
-        WriteSyspam.arry[i] = data[j++];
-    }
-    WriteSyspam.crc = CRC16_Modbus(WriteSyspam.arry);
-    WriteSyspam.arry.append(SystemUtils::_u16ToQByteArray(WriteSyspam.crc));
-    BatterySerial->write(WriteSyspam.arry/*,WriteSyspam.arry.size()*/);
-
-    Last_Comannd         = addr;
-    LastAOrB             = B_COMMAND;
-    Cmd_OverTime         = NORMAL;
-    ReplyTimer           = REPLY_OVERTIME;
-    SendSem.release(1);
-}
 
 void BatteryManger::Basic_TimeOut()
 {
-    static quint16 HeartBeatTimer = 6000;
+    static quint16 HeartBeatTimer = 5000;
+    static quint16 Warning_Timer = 5000;
     if(SendSwitch == CLOSE){
         if(HeartBeatTimer > 0){
             HeartBeatTimer--;
         }else{
-            HeartBeatTimer = 6000;
+            HeartBeatTimer = 5000;
             SendSwitch  = OPEN;
         }
     }
-
+    if(SendSwitch == CLOSE && SendSwitch_Warn == CLOSE){
+        if(Warning_Timer > 0) {
+            Warning_Timer--;
+        } else{
+            Warning_Timer = 5000;
+            SendSwitch_Warn  = OPEN;
+            CmdIndex = DEVICE_OVERHEAT;
+            Update_SendPack(CmdIndex);
+        }
+    }
     if(SendSem.available() == 3 || SendSem.available() == 2){
         if(ReplyTimer > 0){
             ReplyTimer--;
@@ -707,18 +789,48 @@ void BatteryManger::Basic_TimeOut()
             emit RecieveOver();
         }
     }
-
 }
 
 void BatteryManger::Send_TimeOut()
 {
-    if(SendSwitch == OPEN){
+    if(SendSwitch == OPEN || SendSwitch_Warn == OPEN){
         if(SendSem.available() == 4){
-        //    SendPack(Send_Pack);
+            SendPack(Send_Pack);
+        }
+    } else if(SendSwitch_Write == OPEN) {
+        if(SendSem.available() == 4) {
+            WriteBatteryParam(send_write_pack.addr,send_write_pack.addr_num,
+                              send_write_pack.data);
+
         }
     }
 }
+void BatteryManger::WriteBatteryParam(quint16 addr, quint16 addr_num, const QByteArray& data)
+{
+    BatterySyspam WriteSyspam;
+    SendSem.acquire(2);
+    WriteSyspam.arry[0] = DEV_ID;
+    WriteSyspam.arry[1] = FUNC_WRITE;
+    WriteSyspam.arry[2] = (addr & 0xff00) >> 8;
+    WriteSyspam.arry[3] = quint8(addr);
+    WriteSyspam.arry[4] = (addr_num & 0xff00) >> 8;
+    WriteSyspam.arry[5] = quint8(addr_num);
+    WriteSyspam.arry[6] = quint8(data.size());
 
+    for(int i = 7, j = 0;i < data.size() + 7;i++){
+        WriteSyspam.arry[i] = data[j++];
+    }
+    WriteSyspam.crc = CRC16_Modbus(WriteSyspam.arry);
+    WriteSyspam.arry.append(SystemUtils::_u16ToQByteArray(WriteSyspam.crc));
+ //   qDebug()<<"write command = "<<WriteSyspam.arry.toHex();
+    BatterySerial->write(WriteSyspam.arry);
+
+    //Last_Comannd         = addr;
+    LastAOrB             = B_COMMAND;
+    Cmd_OverTime         = NORMAL;
+    ReplyTimer           = REPLY_OVERTIME;
+    SendSem.release(1);
+}
 void BatteryManger::DataSendHandle()
 {
     BatterySyspam data_;
@@ -740,7 +852,7 @@ void BatteryManger::DataSendHandle()
             } else {
                 return;
             }
-          //  qDebug() << "@@data@@:" <<data.toHex();
+  //          qDebug() << "@@data@@:" <<data.toHex();
             if(!data.isEmpty()){
                 if(DEV_ID == data[0]){
                     data_.cmd = CmdIndex;
@@ -752,33 +864,65 @@ void BatteryManger::DataSendHandle()
                     data_.crc = ((quint16)data[i + 1]<<8) + data[i];
                     if(CRC16_Modbus(data_.arry) == data_.crc){
                         list->add(data_);
+
                     }
                 }
             }
 
         }
         CmdIndex++;
-        if(CmdIndex == BATTERY_PARA_NUM){
+        if(CmdIndex == BATTERY_PARA_NUM) {
             SendSwitch = CLOSE;
             CmdIndex = DAY_OR_NIGHT;
             DataRecieveHandle();
             qDebug()<<"send all the data and handle the data!";
+        } else if(CmdIndex == WARING_COMMAND_NUM) {
+            SendSwitch_Warn = CLOSE;
+            CmdIndex = DAY_OR_NIGHT;
+            DataRecieveHandleWarnCommand();
         }
         Update_SendPack(CmdIndex);
         SendSem.release(1);
     }else if(LastAOrB == B_COMMAND){
-        Timer_Send->start(10*TIMER_MSEC);
         LastAOrB = A_COMMAND;
+        SendSwitch_Write = CLOSE;
         if(Cmd_OverTime == NORMAL){
-            QByteArray data/* = BatterySerial->readData()*/;
+            QByteArray data = BatterySerial->readAll();
             if(!data.isEmpty()){//协议处理
                 if(data[1] = FUNC_READ){//读命令
 
                 }else if(data[1] = FUNC_WRITE){//写命令
 
                 }
+             //   qDebug()<<"write command data"<<data.toHex();
             }
+        }else{
+          //  qDebug()<<"超时啦!!!!!!!!!!!!";
         }
         SendSem.release(1);
     }
+}
+void BatteryManger::SetBatteryTime(const QString &data)
+{
+    if(SendSwitch_Write == OPEN)
+        return;
+    QString year = data.mid(2,2);
+    QString month = data.mid(5,2);
+    QString day = data.mid(8,2);
+
+    QString hour = data.mid(11,2);
+    QString min = data.mid(14,2);
+    QString sec = data.mid(17,2);
+
+    send_write_pack.addr = 0x9013;
+    send_write_pack.addr_num = 3;
+    send_write_pack.data.resize(6);
+
+    send_write_pack.data[0] = min.toInt();
+    send_write_pack.data[1] = sec.toInt();
+    send_write_pack.data[2] = day.toInt();
+    send_write_pack.data[3] = hour.toInt();
+    send_write_pack.data[4] = year.toInt();
+    send_write_pack.data[5] = month.toInt();
+    SendSwitch_Write = OPEN;
 }

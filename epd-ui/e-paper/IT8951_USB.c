@@ -429,14 +429,14 @@ void EPD_display_Area(DWord starX, DWord starY, DWord width, DWord High, int mod
 int dis_epd(const char* filePath, uint8_t mode) {
     static int i = -1;
 
-#if LINUX_32BIT
+#ifndef ARM_64
     if (filePath != NULL) {
         Show_bmp(0, 0, filePath);
         i ++;
         if(mode == GLOBAL_REF || mode == PART_REF) {
             EPD_display_Area(0,0,gulPanelW,gulPanelH,mode);
         } else {
-            if(i >= 10 || i == -1) {
+            if(i >= 20 || i == -1) {
                 EPD_display_Area(0,0,gulPanelW,gulPanelH,GLOBAL_REF);
                 i = 0;
             } else {
@@ -444,9 +444,10 @@ int dis_epd(const char* filePath, uint8_t mode) {
             }
         }
 //    }
-#endif
         return 0;
     }
+#endif
+
     return -1;
 }
 void init_device(void) {

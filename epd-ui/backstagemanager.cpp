@@ -1,4 +1,4 @@
-#include "backstagemanager.h"
+﻿#include "backstagemanager.h"
 #include "tcp/StationCommand.h"
 #include <signal.h>
 #include <QDebug>
@@ -17,7 +17,7 @@ void BackstageManager::start()
 {
     serial_2 = new QSerialPort(this);
     tcp_client = client::getInstance();
-
+    battery = BatteryManger::getInstance();
 //    connect(serial_2,SIGNAL(hasdata()),this,SLOT(comSlot()));
     connect(this,SIGNAL(to_SetIP(QString,uint32,uint32)),tcp_client,SLOT(ConnectToHost(QString,uint32,uint32)));
     connect(tcp_client,SIGNAL(veh_data_re()),this,SLOT(ReadVehicleLocation()));
@@ -53,7 +53,9 @@ void BackstageManager::start()
     my_syspam.device_id = tcp_client->ConfigFIleGet("client_syspam","device_id").toInt();
     http_client =  new http(QString::number(my_syspam.device_id));
     connect(tcp_client,SIGNAL(http_command(int)),http_client,SLOT(HttpPostRequest(int)));
+    connect(battery,SIGNAL(to_alarm(QString)),this,SLOT(solt_http_alarm(QString)));
     connect(http_client,SIGNAL(to_local(int)),this,SLOT(ui_handle(int)));
+    connect(http_client,SIGNAL(to_battery_time(QString)),battery,SLOT(SetBatteryTime(QString)));
 //    connect(tcp_client,SIGNAL(to_ui_bulletin(QList<Msg>)),this,SLOT(ui_bulletin(QList<Msg>)));
 //    emit serial_2->hasdata(my_syspam.ip,my_syspam.port,my_syspam.device_id);  // 连接服务器
     tcp_client->ConnectToHost(my_syspam.ip, my_syspam.port, my_syspam.device_id);
@@ -119,8 +121,8 @@ void BackstageManager::ui_handle(int uiflag)
         emit tcp_client->http_command(GET_SOFT_FILE);
         break;
     case GET_SOFT_FILE:
-        //system("reboot");
-            qWarning("reboot");
+        system("reboot");
+        //    qWarning("reboot");
         break;
     }
 }
@@ -200,4 +202,20 @@ void BackstageManager::to_http(uint8 command) {
 
 void BackstageManager::soltShotScreen() {
     emit shot_screen();
+}
+
+void BackstageManager::slot_set_led(uint8 flag){
+    if(flag) {
+        system(BACK_LED1_ON);
+        if(flag > 1)
+            system(BACK_LED2_ON);
+    } else {
+        system(BACK_LED1_OFF);
+        system(BACK_LED2_OFF);
+    }
+}
+void BackstageManager::solt_http_alarm(QString alarm) {
+    qWarning("solt_http_alarm");
+    http_client->alarm_list.append(alarm);
+    emit tcp_client->http_command(PUT_ERROR_MSG);
 }

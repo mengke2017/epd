@@ -46,7 +46,8 @@ void client::ConnectSuccess(void)
     ConfigFIleSet("client_syspam","device_id",my_syspam.device_id);
 
     if(first == true) {
-//        emit http_command(GET_VERSION);
+        emit http_command(GET_WEATHER_HTTP);
+        emit http_command(GET_SERVICE_TIME);
         emit http_command(GET_INI_HTTP);
         emit http_command(GET_LINE_STYLE);
         emit http_command(GET_LINE_HTTP);
@@ -99,14 +100,14 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
                     case 33:  // 下发时钟数据
                         {
 
-                    qWarning("cmd time!");
+                              qWarning("cmd time!");
                               time_t sec = data_list.at(5).toInt();//seconds form 1970/1/1/
                               QString date = "date -s \"";
                               QDateTime dt = QDateTime::fromTime_t(sec);
                               QString strDate = dt.toString(Qt::ISODate);//日期格式自定义
 
                               if(strDate != NULL) {//有效时间
-#if ARM_32BIT
+#ifndef ARM_64
                                   QString date_time;
                              //     qWarning()<<strDate;
                                   date_time = date.append(strDate.replace("T"," "));
@@ -141,17 +142,39 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
                         break;
                     case 13://车辆分布位置
                         {
-                            //qWarning()<<"cmd car pos!";//<<data;
-                            QStringList Data_buf;
+                        //    qWarning()<<"cmd car pos!"<<data;
+                    /*
+                     * <lines><line name=\"201\" count=\"-1\" dist=\"-1\" plan_time=\"\" />
+                     * <line name=\"327\" count=\"-1\" dist=\"-1\" plan_time=\"\" />
+                     * <line name=\"6路\" count=\"-1\" dist=\"-1\" plan_time=\"\">
+                     *     <vehicle veh_id=\"100673500\" station_index=\"30\" station_ratio=\"0.2\" lon=\"121.016267\" lat=\"30.680275\" crowded=\"0\" />
+                     * </line>
+                     * <line name=\"211\" count=\"-1\" dist=\"-1\" plan_time=\"\" />
+                     * <line name=\"337\" count=\"-1\" dist=\"-1\" plan_time=\"\" />
+                     * <line name=\"220\" count=\"-1\" dist=\"-1\" plan_time=\"\" />
+                     * <line name=\"1路南\" count=\"-1\" dist=\"-1\" plan_time=\"\" />
+                     * </lines>
+                    */
 
-                            Data_buf = data_list.at(5).split(SINGAL_VEHICLE_END);  // 通过</line>分解字符串
-                            if(Data_buf.at(Data_buf.size() - 1).contains(VEHICLE_LOCATION_FLAG,Qt::CaseSensitive)){  // 帧结构符合协议
+                            QStringList Data_buf;
+                            QString line;
+
+                            do{
+                                //line.clear();
+                                line = FileUtils::read_xml_node(&data,"<line ","</line>",true);
+                                if(line.isEmpty())
+                                    break;
+                                Data_buf.append(line);
+                            } while(1);
+
+                           // Data_buf = data_list.at(5).split(SINGAL_VEHICLE_END);  // 通过</line>分解字符串
+                           // if(Data_buf.at(Data_buf.size() - 1).contains(VEHICLE_LOCATION_FLAG,Qt::CaseSensitive)){  // 帧结构符合协议
                            //     qDebug()<<"444";
-                                for(int i = 0; i < Data_buf.size()-1; i++){  // 去掉车辆信息中的<lines>结尾
+                                for(int i = 0; i < Data_buf.size(); i++){  // 去掉车辆信息中的<lines>结尾
                                     AddVehicleLocationTolist(Data_buf.at(i));
                                 }
                                 emit veh_data_re();
-                            }
+                          // }
                         }
                         break;
                     case 41://批量通知
@@ -222,13 +245,13 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
                        // command_handle(cmd);
                         if(!cmd.compare(CMD_RESTSRT)) {  // 重启
                             qWarning("reboot");
-#if ARM_32BIT
+#ifndef ARM_64
                             system("reboot");
 #endif
                             SendCmd_Response(0,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_CLOSE)) {  // 关机
                             qWarning("poweroff");
-#if ARM_32BIT
+#ifndef ARM_64
                             system("poweroff");
 #endif
                             SendCmd_Response(1,procotol_struct.command_serial);
@@ -242,6 +265,7 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
                             SendCmd_Response(3,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_UPDATE_SET)) {  // 更新设置
                             qWarning("CMD_UPDATE_SET");
+                            emit http_command(GET_INI_HTTP);
                             SendCmd_Response(5,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_UPDATE_PRO)) {  // 更新节目
                             qWarning("CMD_UPDATE_PRO");
@@ -253,7 +277,7 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
                             SendCmd_Response(6,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_UPDATE_FILE)) {  // 软件升级
                             qWarning("CMD_UPDATE_FILE");
-
+                            emit http_command(GET_VERSION);
                             SendCmd_Response(7,procotol_struct.command_serial);
                         } else if(!cmd.compare(CMD_SCREENSHOT_ON)) {  // 截屏开
                             qWarning("CMD_SCREENSHOT_ON");
@@ -332,22 +356,17 @@ void client::TCPsocket_Protocol(QByteArray DataBuf)
 void client::SendOK_Response(qint8 direction, qint16 name, qint16 serial)  //  应答OK
 {
     QString SendData;
-//    SendData.append(HEADER);
-//    SendData.append(",");
     SendData.append(QString::number(direction));
     SendData.append(",");
     SendData.append(QString::number(name));
     SendData.append(",");
     SendData.append(QString::number(serial));
     SendData.append("2,OK");
- //   SendData.append(END);
     send(SendData.toLatin1());
 }
 
 void client::SendCmd_Response(uint8 cmd_value, uint16 serial) {
     QString SendData;
-//    SendData.append(HEADER);
-//    SendData.append(",");
     SendData.append(QString::number(3));
     SendData.append(",");
     SendData.append(QString::number(8));
@@ -357,8 +376,6 @@ void client::SendCmd_Response(uint8 cmd_value, uint16 serial) {
     SendData.append(QString::number(QString::number(cmd_value).size()));
     SendData.append(",");
     SendData.append(QString::number(cmd_value));
-//    SendData.append(",");
- //   SendData.append(END);
     send(SendData.toLatin1());
 }
 void client::AddVehicleLocationTolist(QString data)  // 获取线路状态
@@ -377,12 +394,13 @@ void client::AddVehicleLocationTolist(QString data)  // 获取线路状态
     my_vehicle_localtion.count = count_;
     QStringList Singalvehicle_list = data.split(SPLIT_CHAR);//通过SPLIT_CHAR，把每一条线路下的每一辆车区分开来
     my_vehicle_localtion.vehicle_amount = 0;
+ //   qWarning()<<"line_name: "<<my_vehicle_localtion.vehicle_name;
     for(int j = 0;j < Singalvehicle_list.size();j++){
         if(Singalvehicle_list.at(j).contains("veh_id")){//统计车辆ID数量
             QString index =  Singalvehicle_list.at(j).section("\"",3,3);//截取station_index索引
             my_vehicle_localtion.station_index[my_vehicle_localtion.vehicle_amount] = index.toInt();
             my_vehicle_localtion.vehicle_amount++;
-         //   qWarning()<<"index: "<<index;
+       //     qWarning()<<"index: "<<index;
         }
 
     }

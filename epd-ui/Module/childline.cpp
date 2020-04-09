@@ -1,6 +1,7 @@
 #include "Module/childline.h"
 
 //#define FIRST_STATION_CHE  171
+#define STATION_MAX  25
 
 ChildLine::ChildLine(int16_t ypos)
 {
@@ -60,8 +61,11 @@ void ChildLine::create_line(QString id, int8_t current_index, int8_t station_tot
     QString time = timeS;
 //    if(!summerFlag)
 //        time =  timeE;
-    if(station_total > 25)
-        station_total = 25;   // 最多25个站点
+    if(station_total > STATION_MAX) {
+        station_total = STATION_MAX;   // 最多25个站点
+        if(current_index > station_total)
+            current_index = 0;
+    }
     if(station_total > 1) {
         dist = VAILD_DIST/(station_total-1);
     }

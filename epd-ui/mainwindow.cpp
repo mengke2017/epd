@@ -44,6 +44,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(service,SIGNAL(update_bulletin(QString)),this,SLOT(update_bulletin_text(QString)));
     connect(service,SIGNAL(shot_screen()),this,SLOT(slotGrabFullScreen()));
     connect(this,SIGNAL(update_shot_screen(uint8)),service,SLOT(to_http(uint8)));
+    connect(this,SIGNAL(set_led(uint8)),service,SLOT(slot_set_led(uint8)));
 
     mainpage_line_max = MAX_LINE_COUNT_MAIN;
     childpage_line_max = MAX_LINE_COUNT_CHILD;
@@ -65,7 +66,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(top_widget, SIGNAL(timeover(uint)), service, SLOT(serTimerOut(uint)));
     timer->start(500);
     ui->centralWidget->hide();
-#if LINUX_32BIT
+#ifndef ARM_64
     init_device();
 #endif
 }
@@ -77,7 +78,7 @@ MainWindow::~MainWindow()
     freePage(CHILD_PAGE);
 }
 
-void MainWindow::slotTimerOut()
+void MainWindow::slotTimerOut()  //0.5s
 {
     static int count = -1;
     static bool main_flag = true;
@@ -111,6 +112,39 @@ void MainWindow::slotTimerOut()
         return;
     }
     count++;
+//    sec_count++;
+    if(count == 10) {
+        uint current_minute = QTime::currentTime().hour()*60+QTime::currentTime().minute();
+        static bool led_flag = false;
+        if(para.open > para.shut) {
+            if(current_minute >= para.open || current_minute < para.shut) {
+                if(led_flag == true)
+                    return;
+                led_flag = true;
+                emit set_led(para.brightness);
+            } else if(led_flag == true){
+                led_flag = false;
+                emit set_led(0);
+            }
+        } else {
+            if(current_minute >= para.open && current_minute < para.shut) {
+                if(led_flag == true)
+                    return;
+                led_flag = true;
+                emit set_led(para.brightness);
+            } else if(led_flag == true){
+                led_flag = false;
+                emit set_led(0);
+            }
+        }
+    }
+
+        //qWarning()<<"current_time"<<top_widget->current_time<<" "<<para.open.mid(0,5);
+//        if(!top_widget->current_time.compare(para.open.mid(0,5))) {
+//            emit set_led(para.brightness);  // on led
+//        } else if(!top_widget->current_time.compare(para.shut.mid(0,5))) {
+//            emit set_led(0);  //off led
+//        }
 }
 
 void MainWindow::createMainpage(QList<PageInfo> page_info)
@@ -383,10 +417,35 @@ void MainWindow::read_lineinfo_xml() {
         page_info.append(info);
         info.name_list.clear();
     }
-//    line_total = page_info.length();
+
     line_total = 0;
     uint16 len = page_info.length();
     uint16 i = 0;
+    QList<StyelInfo> list = style_info_list;
+    for(int n = 0; n < style_info_list.length(); n++) {
+        for (int m = n; m < style_info_list.length(); m++) {
+            if(!style_info_list.at(n).line_id.compare(style_info_list.at(m).line_id)) {
+                if(n != m) {
+                    style_info_list.removeAt(m);
+                    m--;
+                }
+
+            }
+        }
+    }
+//    foreach (StyelInfo styleInfo1, style_info_list) {
+//        n = 0;
+//        foreach (StyelInfo styleInfo, style_info_list) {
+//            if(!styleInfo1.line_id.compare(styleInfo.line_id)) {
+//                if(n != m)
+//                    list.removeAt(n);
+//            }
+//            n++;
+//        }
+//        m++;
+//    }
+//    style_info_list.clear();
+//    style_info_list = list;
     foreach (StyelInfo styleInfo, style_info_list) {
         for(uint16 j = 0; j < len; j++) {
             if(styleInfo.line_id.compare(page_info.at(j).line_id))
@@ -425,13 +484,13 @@ void MainWindow::read_weather_xml() {
 
     str = codeC->toUnicode(byte.data());
 
-    weather_str = read_xml_node(&str, "<weather", "/>", false);
+    weather_str = FileUtils::read_xml_node(&str, "<weather", "/>", false);
     list = weather_str.split("\"");
     index = list.indexOf(" value=");
     if(!(index < 0 || list.length() < index + 1))
         weather = list.at(index+1);
     list.clear();
-    temp_str = read_xml_node(&str, "<temperature", "/>", false);
+    temp_str = FileUtils::read_xml_node(&str, "<temperature", "/>", false);
     list = temp_str.split("\"");
     index = list.indexOf(" value=");
     if(!(index < 0 || list.length() < index + 1))
@@ -460,31 +519,40 @@ void MainWindow::read_initpara_xml() {
 
     str = codeC->toUnicode(byte.data());
 
-    value = read_xml_node(&str,"<setLamp","/>",false);
+    value = FileUtils::read_xml_node(&str,"<setLamp","/>",false);
     list = value.split("\"");
     index = list.indexOf(" open=");
-    if(!(index < 0 || list.length() < index + 1))
-        para.open = list.at(index+1);
+    QStringList time_list;
+    if(!(index < 0 || list.length() < index + 1)) {
+        time_list = list.at(index+1).split(":");
+        if(time_list.length() >= 2) {
+            para.open = time_list.at(0).toInt()*60+time_list.at(1).toInt();
+        }
+    }
     index = list.indexOf(" shut=");
-    if(!(index < 0 || list.length() < index + 1))
-        para.shut = list.at(index+1);
+    if(!(index < 0 || list.length() < index + 1)) {
+        time_list = list.at(index+1).split(":");
+        if(time_list.length() >= 2) {
+            para.shut = time_list.at(0).toInt()*60+time_list.at(1).toInt();
+        }
+    }
     list.clear();
 
-    value = read_xml_node(&str,"<brightness","/>",false);
+    value = FileUtils::read_xml_node(&str,"<brightness","/>",false);
     list = value.split("\"");
     index = list.indexOf(" value=");
     if(!(index < 0 || list.length() < index + 1))
-        para.brightness = list.at(index+1);
+        para.brightness = list.at(index+1).toInt();
     list.clear();
 
-    value = read_xml_node(&str,"<StationName","/>",false);
+    value = FileUtils::read_xml_node(&str,"<StationName","/>",false);
     list = value.split("\"");
     index = list.indexOf(" value=");
     if(!(index < 0 || list.length() < index + 1))
         para.station_name = list.at(index+1).simplified().replace("（", "(").replace("）", ")");
     list.clear();
 
-    value = read_xml_node(&str,"<switch","/>",false);
+    value = FileUtils::read_xml_node(&str,"<switch","/>",false);
     list = value.split("\"");
     index = list.indexOf(" bg_time=");
     if(!(index < 0 || list.length() < index + 1))
@@ -494,7 +562,7 @@ void MainWindow::read_initpara_xml() {
         para.end_time = list.at(index+1);
     list.clear();
 
-    value = read_xml_node(&str,"<black_scr","/>",false);
+    value = FileUtils::read_xml_node(&str,"<black_scr","/>",false);
     list = value.split("\"");
     index = list.indexOf(" value=");
     if(!(index < 0 || list.length() < index + 1)) {
@@ -538,8 +606,8 @@ void MainWindow::read_lineStyle_xml() {
     style_info_list.clear();
     do {
         item.clear();
-        item = read_xml_node(&str,"<item","</item>",true);  // 先获取itemi节点
-        value = read_xml_node(&item,"<left","/>",false);  // 再获取itemi子节点left
+        item = FileUtils::read_xml_node(&str,"<item","</item>",true);  // 先获取itemi节点
+        value = FileUtils::read_xml_node(&item,"<left","/>",false);  // 再获取itemi子节点left
         if(item.isEmpty() || value.isEmpty())
             return;
         // 获取该线路排版位置
@@ -560,39 +628,6 @@ void MainWindow::read_lineStyle_xml() {
         list.clear();
         style_info_list.append(style_info);
     } while(!item.isEmpty());
-}
-
-QString MainWindow::read_xml_node(QString *xml, QString node, QString node_end, bool cut) {  // 若node_end没有，则默认为"/>"
-    QString value;
-    int star_index, end_index, star_node_index;
-    if(xml->isEmpty())
-        return "";
-    star_index = xml->indexOf(node);
-    if(star_index < 0) {
-        node = "&lt;"+node.mid(1);
-        star_index = xml->indexOf(node);
-        if(star_index < 0)
-           return "";
-    }
-
-    star_node_index = star_index + node.length();
-
-    if(node_end.isEmpty()) {
-        node_end = "/>";
-    }
-    end_index = xml->indexOf(node_end);
-
-    if(end_index < 0) {
-        node_end = node_end.remove(">")+"&gt;";
-        end_index = xml->indexOf(node_end);
-        if(end_index < 0)
-           return "";
-    }
-
-    value = xml->mid(star_node_index, end_index-star_node_index);
-    if(cut)
-        xml->remove(star_index, end_index-star_index+node_end.length());
-    return value;
 }
 
 void MainWindow::freePage(uint16_t flag) {

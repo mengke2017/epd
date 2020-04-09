@@ -33,18 +33,26 @@
 #define TOTAL_POWER_CHARGE        20//L
 #define POWER                     21//负载功率 L
 #define BATTERY_CURRENT           22//L
+
 #define BATTERY_PARA_NUM          23
+/******************Warning Command************************/
+#define DEVICE_OVERHEAT                  23
+#define BATTERY_STATUS                   24
+#define CHARGE_STATUS                    25
+#define DISCHARGE_STATUS                 26
+
+#define WARING_COMMAND_NUM               27
 //有些数据是L和H构成的，发送tcp包需要把两个数据合并成一个数据，所以需要加一个特殊数据
-#define SPEC_ARRAY_POWER_H             24
-#define SPEC_POWER_H                   25
-#define SPEC_DAY_POWER_DISCHARGE_H     26
-#define SPEC_MONTH_POWER_DISCHARGE     27
-#define SPEC_YEAR_POWER_DISCHARGE      28
-#define SPEC_TOTAL_POWER_DISCHARGE     29
-#define SPEC_DAY_POWER_CHARGE          30
-#define SPEC_MONTH_POWER_CHARGE        31
-#define SPEC_YEAR_POWER_CHARGE         32
-#define SPEC_TOTAL_POWER_CHARGE        33
+//#define SPEC_ARRAY_POWER_H             24
+//#define SPEC_POWER_H                   25
+//#define SPEC_DAY_POWER_DISCHARGE_H     26
+//#define SPEC_MONTH_POWER_DISCHARGE     27
+//#define SPEC_YEAR_POWER_DISCHARGE      28
+//#define SPEC_TOTAL_POWER_DISCHARGE     29
+//#define SPEC_DAY_POWER_CHARGE          30
+//#define SPEC_MONTH_POWER_CHARGE        31
+//#define SPEC_YEAR_POWER_CHARGE         32
+//#define SPEC_TOTAL_POWER_CHARGE        33
 
 #define BATTERY_RATED_CURRENT            34//蓄电池额定电流
 #define LOAD_RATED_CURRENT               35//负载额定电流
@@ -71,7 +79,6 @@
 #define DISCHARGE_DEEP                   56//放电深度
 #define CHARGE_DEEP                      57//充电深度
 #define CHARGE_MANAGER                   58//电池充放电管理模式
-
 
 #define NO_REPLY_DATA 0x77
 #define SAME_DATA     0x77
@@ -117,6 +124,17 @@ typedef struct battery_manager{
     QString batteryCurrent;      //蓄电池电流 A
 }BatteryPara;
 
+typedef struct battery_manager_warn{
+    uint32_t DeviceOverHeat;          //
+    uint32_t BatteryStatus;           //
+    uint32_t ChargeStatus;            //
+    uint32_t DischargeStatus;         //
+}BatteryPara_warn;
+typedef struct battery_Send_pack{
+    quint16 addr;          //
+    quint16 addr_num;        //
+    QByteArray data;        //
+}BatteryPara_send_pack;
 class BatteryManger : public QObject
 {
     Q_OBJECT
@@ -124,13 +142,17 @@ public:
     explicit BatteryManger(QObject *parent = 0);
     static BatteryManger* getInstance();
     BatteryPara   Battery_buffer;
+    BatteryPara_warn   BatteryWarn_buffer;
 private:
     volatile bool     SendSwitch;
+    volatile bool     SendSwitch_Warn;
+    volatile bool     SendSwitch_Write;
     volatile quint16  LastAOrB;//判断上一次发送A指令还是B指令
     volatile quint16  CmdIndex;
-    volatile quint16  Last_Comannd;
+    //volatile quint16  Last_Comannd;
     volatile quint16  Cmd_OverTime;
     volatile quint16  ReplyTimer;
+    volatile quint16  SetTimer;
 
     QTimer*      Timer_Basic;
     QTimer*      Timer_Send;
@@ -139,24 +161,30 @@ private:
     QSettings*   Battery_file;
 
     BatterySyspam Send_Pack;
+    BatteryPara_send_pack send_write_pack;
 
     void SendPack(BatterySyspam& send_pack);
     void Update_SendPack(quint16 index);
     quint16 CRC16_Modbus(QByteArray& arry);
     void DataRecieveHandle();
+    void DataRecieveHandleWarnCommand();
     void BatteryIntAndStringHandle(BatteryPara& Battery_data);
     QVariant BatteryFIleGet(QString file_name, QString NodeName, QString KeyName);
     void BatteryFIleSet(QString file_name, QString NodeName, QString KeyName, QVariant vaule);
     float ReplyDataCalcul(const QByteArray& Data, quint16 Cmd);
 
     void ReadBatteryParam(quint16 addr, quint16 ParamNum);
-    void WriteBatteryParam(quint16 addr, quint16 addr_num, quint8 data_num, const QByteArray& data);
+    QByteArray ReplyDataCal(const QByteArray &Data, quint16 Cmd);
+    void WriteBatteryParam(quint16 addr, quint16 addr_num, const QByteArray& data);
 signals:
     void RecieveOver();
+    void to_alarm(QString);
 private slots:
     void Basic_TimeOut();
     void Send_TimeOut();
     void DataSendHandle();
+public slots:
+    void SetBatteryTime(const QString &data);
 };
 
 #endif // BATTERYMANGER_H

@@ -45,7 +45,7 @@ TopWidget::TopWidget()
     date_text = new QLabel(top_widget);
     date_text->setFont(QFont("Sans Serif", 18, 50));
     date_text->setAlignment(Qt::AlignCenter);
-    date_text->setText("2019年12月25日\n星期三");
+    date_text->setText("2020年1月1日\n星期三");
     date_text->setGeometry(720,40,211,91);
 
     QTimer * timer = new QTimer(this);

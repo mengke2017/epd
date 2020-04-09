@@ -2,7 +2,7 @@
 #define CUSTOMIZE_H
 #include <QDebug>
 
-#define ARM_32BIT    1
+//#define ARM_32BIT    1
 
 typedef unsigned char  uint8_t;
 typedef unsigned short uint16_t;
@@ -159,9 +159,9 @@ typedef struct {
     QString station_name;
     QString bg_time;
     QString end_time;
-    QString open;
-    QString shut;
-    QString brightness;
+    uint open;
+    uint shut;
+    uint8 brightness;
     uint16_t black_value;
     uint16_t black_count;
 } InitPara;

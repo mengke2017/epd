@@ -28,7 +28,11 @@ http::http(QString estationid)
     connect(timer, SIGNAL(timeout()), this, SLOT(_HttpPostRequest()));
     timer->start(HTTP_TIME);
 }
-
+//http* http::getInstance()
+//{
+//    static http instance;
+//    return &instance;
+//}
 void http::Webservice_Request_DownLoad(Raw_Header *raw)
 {
     QNetworkRequest request;
@@ -224,7 +228,8 @@ QByteArray http::Bzip2DataHandle(QByteArray data)
         QString date = "date -s \"" + data + "\"";
         system(date.toLatin1().data());
         system("hwclock -w");
-
+        QString date_time = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss");
+        emit to_battery_time(date_time);
     } else {
         if(http_command == GET_LINE_HTTP)
             file_name = "./station_line.xml";
@@ -447,8 +452,11 @@ void http::_HttpPostRequest()
         }
         case PUT_ERROR_MSG:
         {
+            if(alarm_list.isEmpty())
+                break;
             estationid = Device_id;
             QString alarm = "1";
+            alarm = alarm_list.first();
             raw.Content_Type = "text/xml;charset=UTF-8";
             raw.SOAPAction = "\"http://www.56gps.cn/insertIntoAlarm\"";
             raw.Envelope_start = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:gps=\"http://www.56gps.cn/\">";
@@ -463,6 +471,8 @@ void http::_HttpPostRequest()
             raw.Content_Length = raw.Soap_XML.size();
             Webservice_Request_DownLoad(&raw);
             http_command = PUT_ERROR_MSG;
+            alarm_list.removeFirst();
+            qWarning("PUT_ERROR_MSG");
             break;
         }
         case GET_VERSION:
@@ -495,7 +505,7 @@ void http::_HttpPostRequest()
             {
                 fileName = "index.html";
             }
-            app_file = new QFile("./epd-ui.apk");
+            app_file = new QFile("./epd-ui");
             if(!app_file->open(QIODevice::WriteOnly))
             {
                 qDebug()<<"file open error";
